@@ -1,5 +1,4 @@
-from data_utils1 import SortedNumberGenerator
-from os.path import join, basename, dirname, exists
+
 import datetime
 import argparse
 import tensorflow as tf
@@ -11,12 +10,15 @@ import keras
 from keras import backend as K
 from keras.models import Sequential, Model
 from keras.layers.merge import _Merge
-from keras.layers import Input, Dense, Reshape, Flatten, Dropout, concatenate
+from keras.layers import Input, Dense, Reshape, Flatten, Dropout, concatenate, Lambda
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D, TimeDistributed
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.optimizers import RMSprop
 from keras.utils import multi_gpu_model
+
+from data_utils1 import SortedNumberGenerator
+from os.path import join, basename, dirname, exists
 
 from tqdm import tqdm
 import random
@@ -28,13 +30,9 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-
 import os
 if not os.path.exists('models/'):
     os.makedirs('models/')
-
-if not os.path.exists('fig'):
-    os.makedirs('fig')
 
 
 class RandomWeightedAverage(_Merge):
@@ -48,22 +46,13 @@ class RandomWeightedAverage(_Merge):
         return (alpha * inputs[0]) + ((1 - alpha) * inputs[1])
 
 
-# def time_distributed(model, inputs):
-#     ''' alternative for keras.layer.TimeDistributed '''
-#     n_times = inputs.shape[1]
-#     outputs = [model(inputs[:,i,...]) for i in range(n_times)]
-#     #outputs = [Dense(10)(inputs[:, i, ...]) for i in range(n_times)]
-#     if len(outputs) == 1:
-#         output = keras.layers.Lambda(lambda x: K.expand_dims(x, axis=1))(outputs[0])
-#     else:
-#         output = keras.layers.Lambda(lambda x: K.stack(x, axis=1))(outputs)
-#     return output
-
 def time_distributed(model, inputs):
     ''' alternative for keras.layer.TimeDistributed '''
-    n_times = inputs.shape[1]
-    #outputs = [model(inputs[:,i,...]) for i in range(n_times)]
-    output = concatenate([keras.layers.Lambda(lambda z: K.expand_dims(z, 1))(model(keras.layers.Lambda(lambda z: z[:,i])(inputs))) for i in range(n_times)],1)
+    outputs = [model(Lambda(lambda data: data[:,i])(inputs)) for i in range(inputs.shape[1])]
+    if len(outputs) == 1:
+        output = Lambda(lambda x: K.expand_dims(x, axis=1))(outputs[0])   # if the length of the list is 1, get the element and expand its dimension.
+    else:
+        output = Lambda(lambda x: K.stack(x, axis=1))(outputs)            # if the length of the list is larger than 1, stack the elements along the axis.
     return output
 
 
@@ -109,20 +98,18 @@ class WGANGP():
 
         # Generate image based of noise (fake sample)
         fake_img = time_distributed(self.generator, z_disc_con)
-        # fake_img = keras.layers.Concatenate(axis=1)([keras.layers.Lambda(lambda z: K.expand_dims(z, 1))(self.generator(keras.layers.Lambda(lambda z: z[:,0])(z_disc_con))) for i in range(self.predict_terms)])
-        # fake_img = concatenate([keras.layers.Lambda(lambda z: K.expand_dims(z, 1))(self.generator(keras.layers.Lambda(lambda z: z[:,0])(z_disc_con))) for i in range(self.predict_terms)],1)
         self.gen_model = Model(inputs=[x_img, z_disc], outputs=[fake_img])
 
         # Discriminator determines validity of the real and fake images
-        fake = TimeDistributed(self.critic)(fake_img)
-        valid = TimeDistributed(self.critic)(real_img)
-        #fake = TimeDistributed(self.critic)(fake_img)
+        fake = time_distributed(self.critic,fake_img)
+        valid = time_distributed(self.critic,real_img)
+
 
         # Construct weighted average between real and fake images
         interpolated_img = RandomWeightedAverage(args.batch_size, args.predict_terms)([real_img, fake_img])
         # Determine validity of weighted sample
         #validity_interpolated = self.critic(interpolated_img)
-        validity_interpolated = TimeDistributed(self.critic)(interpolated_img)
+        validity_interpolated = time_distributed(self.critic,interpolated_img)
 
         # Use Python partial to provide loss function with additional
         # 'averaged_samples' argument
@@ -138,6 +125,9 @@ class WGANGP():
                                               partial_gp_loss],
                                         optimizer=optimizer,
                                         loss_weights=[1, 1, 10])
+        self.critic_model.summary()
+
+
         #-------------------------------
         # Construct Computational Graph
         #         for Generator
@@ -156,15 +146,15 @@ class WGANGP():
         # Generate images based of noise
         img = time_distributed(self.generator, z_gen_con)
         # Discriminator determines validity
-        valid = TimeDistributed(self.critic)(img)
+        valid = time_distributed(self.critic,img)
         # Defines generator model
 
-        z = TimeDistributed(encoder)(img)
+        z = time_distributed(encoder,img)
 
         cpc_loss = cpc_sigma([pred, z])
 
         self.generator_model = Model(inputs=[x_img, z_gen], outputs=[valid, cpc_loss])
-        self.generator_model.compile(loss=[self.wasserstein_loss, 'binary_crossentropy'], loss_weights=[1.0, args.cpc_weight], optimizer=optimizer)
+        self.generator_model.compile(loss=[self.wasserstein_loss, 'binary_crossentropy'], loss_weights=[args.gan_weight, args.cpc_weight], optimizer=optimizer)
 
     def gradient_penalty_loss(self, y_true, y_pred, averaged_samples):
         """
@@ -204,7 +194,7 @@ class WGANGP():
         model.add(Conv2D(self.channels, kernel_size=4, padding="same"))
         model.add(Activation("tanh"))
 
-        model.summary()
+        #model.summary()
 
         noise = Input(shape=(self.latent_dim * 2,))
         img = model(noise)
@@ -234,7 +224,7 @@ class WGANGP():
         model.add(Flatten())
         model.add(Dense(1))
 
-        model.summary()
+        #model.summary()
 
         img = Input(shape=self.img_shape)
         validity = model(img)
@@ -246,19 +236,14 @@ class WGANGP():
 '''
 This module describes the contrastive predictive coding model from DeepMind
 '''
-from data_utils1 import SortedNumberGenerator
-from os.path import join, basename, dirname, exists
-import keras
-from keras import backend as K
-
 
 def network_encoder(x, code_size):
 
     ''' Define the network mapping images to embeddings '''
 
-    # x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
-    # x = keras.layers.BatchNormalization()(x)
-    # x = keras.layers.LeakyReLU()(x)
+    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=1, activation='linear')(x)
+    x = keras.layers.BatchNormalization()(x)
+    x = keras.layers.LeakyReLU()(x)
     x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
@@ -342,12 +327,12 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
 
     # Define rest of model
     x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2]))
-    x_encoded = keras.layers.TimeDistributed(encoder_model)(x_input)
+    x_encoded = TimeDistributed(encoder_model)(x_input)
     context = network_autoregressive(x_encoded)
     preds = network_prediction(context, code_size, predict_terms)
 
     y_input = keras.layers.Input((predict_terms, image_shape[0], image_shape[1], image_shape[2]))
-    y_encoded = keras.layers.TimeDistributed(encoder_model)(y_input)
+    y_encoded = TimeDistributed(encoder_model)(y_input)
 
     # Loss
     cpc_layer = CPCLayer()
@@ -382,15 +367,15 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
                                             image_size=image_size, color=color, rescale=True)
 
 
+    channel = 3 if color else 1
+    model, pc, encoder = network_cpc(image_shape=(image_size, image_size, channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
 
     if len(args.load_name) > 0:
-        pc = keras.models.load_model(join(args.load_name, 'pc.h5'))
+        pc = keras.models.load_model(join(args.load_name, 'pc.h5'))#,custom_objects={'CPCLayer': CPCLayer})
         encoder = keras.models.load_model(join(args.load_name, 'encoder.h5'))
 
     else:
         print('Start Training CPC')
-        channel = 3 if color else 1
-        model, pc, encoder = network_cpc(image_shape=(image_size, image_size, channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
 
         #model = keras.models.load_model(join('cpc_models', 'cpc.h5'),custom_objects={'CPCLayer': CPCLayer})
 
@@ -415,8 +400,9 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
         # Saves the encoder alone
         pc.save(join(output_dir, 'pc.h5'))
         encoder.save(join(output_dir, 'encoder.h5'))
-
-
+        # time.sleep(3)
+        # pc = keras.models.load_model(join('cpc_models', 'pc.h5'))
+        # encoder = keras.models.load_model(join('cpc_models', 'encoder.h5'))
 
     print("Start Training GAN")
     cpc_sigma = CPCLayer()
@@ -425,30 +411,35 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
     valid = -np.ones((batch_size, predict_terms, 1))
     fake =  np.ones((batch_size, predict_terms, 1))
+    true_labels = np.ones((batch_size, 1))
     dummy = np.zeros((batch_size, predict_terms, 1)) # Dummy gt for gradient penalty
 
     for epoch in range(args.gan_epochs):
-
+        #print(len(train_data))
         for i in range(len(train_data) // 1):
             #print("xxxxxxxxxxxxxxx")
-
-            #[x_img, y_img], labels = next(train_data)
             t0 = time.time()
+
+            [x_img, y_img], labels = next(train_data)
+
+            t1 = time.time()
+
             for _ in range(5):
                 #print("yyyyyyyyyyyyyyyyyyy")
-                [x_img, y_img], labels = next(train_data)
+                #[x_img, y_img], labels = next(train_data)
                 noise = np.random.normal(0, 1, (batch_size, predict_terms, args.code_size))
                 d_loss = gan.critic_model.train_on_batch([x_img, y_img, noise], [valid, fake, dummy])
-            t1 = time.time()
-            print("time elapsed:", t1-t0)
-
-            g_loss = gan.generator_model.train_on_batch([x_img, noise], [valid, labels])
 
 
-        # Validation
-        print("\nepoch: ", epoch)
-        print("d_loss: ", d_loss)
-        print("g_loss: ", g_loss)
+            g_loss = gan.generator_model.train_on_batch([x_img, noise], [valid, true_labels])
+
+            t2 = time.time()
+            print("time elapsed:", t1 - t0, t2-t1)
+
+
+        ###################  Validation   ###################
+
+        print("\nepoch: ", epoch, "\nd_loss: ", d_loss, "\ng_loss: ", g_loss)
 
         init_img = x_img[0, ...]
         init_img = (init_img + 1)*0.5
@@ -460,11 +451,12 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
         if imgs.shape[-1] == 1:
             imgs = np.concatenate([imgs, imgs, imgs], axis=-1)
 
-        fig, axs = plt.subplots(1,8)
-        for i in range(8):
+        col = args.terms + args.predict_terms
+        fig, axs = plt.subplots(1,col)
+        for i in range(col):
             axs[i].imshow(imgs[i] )
             axs[i].axis('off')
-        fig.savefig("images/cpcgan100_%d.png" % epoch)
+        fig.savefig("images/cpcgan41_100_%d.png" % epoch)
         plt.close()
 
 
@@ -482,12 +474,12 @@ if __name__ == "__main__":
         help='loadpath')
     argparser.add_argument(
         '-e', '--cpc-epochs',
-        default=100,
+        default=1,
         type=int,
         help='cpc epochs')
     argparser.add_argument(
         '-g', '--gan-epochs',
-        default=200,
+        default=1000,
         type=int,
         help='gan epochs')
     argparser.add_argument(
@@ -495,22 +487,19 @@ if __name__ == "__main__":
         default=1e-3,
         type=float,
         help='Learning rate')
-    argparser.add_argument(
-        '--cpc-weight',
-        default=100.0,
-        type=float,
-        help='CPC Weight')
     argparser.add_argument('--doctor', action='store_true', default=False, help='Doctor')
 
     args = argparser.parse_args()
 
+    args.gan_weight = 1.0
+    args.cpc_weight = 100.0
 
     args.predict_terms = 4
     args.code_size = 64
     args.batch_size = 128
     args.color = False
     args.terms = 4
-    args.load_name = 'cpc_models'
+    #args.load_name = "models"# 'cpc_models'
 
     train_model(
         args,
