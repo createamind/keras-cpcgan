@@ -441,22 +441,24 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
         print("\nepoch: ", epoch, "\nd_loss: ", d_loss, "\ng_loss: ", g_loss)
 
-        init_img = x_img[0, ...]
+        rows = 5
+        init_img = x_img[0:rows, ...]
         init_img = (init_img + 1)*0.5
-        gen_img = gen_model.predict([x_img[0:1,...],noise[0:1,...]])[0]
+        gen_img = gen_model.predict([x_img[0:rows,...],noise[0:rows,...]])
         gen_img = (gen_img + 1)*0.5
 
-        imgs = np.concatenate((init_img,gen_img),axis=0)
+        imgs = np.concatenate((init_img,gen_img),axis=1)
 
         if imgs.shape[-1] == 1:
             imgs = np.concatenate([imgs, imgs, imgs], axis=-1)
 
-        col = args.terms + args.predict_terms
-        fig, axs = plt.subplots(1,col)
-        for i in range(col):
-            axs[i].imshow(imgs[i] )
-            axs[i].axis('off')
-        fig.savefig("images/cpcgan41_100_%d.png" % epoch)
+        cols = args.terms + args.predict_terms
+        fig, axs = plt.subplots(rows,cols)
+        for i in range(rows):
+            for j in range(cols):
+                axs[i,j].imshow(imgs[i,j] )
+                axs[i,j].axis('off')
+        fig.savefig("images/cpcgan41_100x_%d.png" % epoch)
         plt.close()
 
 
