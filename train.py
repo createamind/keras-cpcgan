@@ -18,6 +18,7 @@ from keras.optimizers import RMSprop
 from keras.utils import multi_gpu_model
 
 from data_utils1 import SortedNumberGenerator
+from data_human_walking import HumanActivityDataGenerator
 from os.path import join, basename, dirname, exists
 
 from tqdm import tqdm
@@ -58,8 +59,8 @@ def time_distributed(model, inputs):
 
 class WGANGP():
     def __init__(self, args, pc, encoder, cpc_sigma):
-        self.img_rows = 28
-        self.img_cols = 28
+        self.img_rows = 112
+        self.img_cols = 112
         self.channels = 3 if args.color else 1
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.latent_dim = args.code_size
@@ -188,6 +189,14 @@ class WGANGP():
         model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
         model.add(UpSampling2D())
+        model.add(Conv2D(128, kernel_size=4, padding="same"))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(Activation("relu"))
+        model.add(UpSampling2D())
+        model.add(Conv2D(64, kernel_size=4, padding="same"))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(Activation("relu"))
+        model.add(UpSampling2D())
         model.add(Conv2D(64, kernel_size=4, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
@@ -210,6 +219,14 @@ class WGANGP():
         model.add(Dropout(0.25))
         model.add(Conv2D(32, kernel_size=3, strides=2, padding="same"))
         model.add(ZeroPadding2D(padding=((0,1),(0,1))))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(Dropout(0.25))
+        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(Dropout(0.25))
+        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
@@ -241,6 +258,12 @@ def network_encoder(x, code_size):
 
     ''' Define the network mapping images to embeddings '''
 
+    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=1, activation='linear')(x)
+    x = keras.layers.BatchNormalization()(x)
+    x = keras.layers.LeakyReLU()(x)
+    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=1, activation='linear')(x)
+    x = keras.layers.BatchNormalization()(x)
+    x = keras.layers.LeakyReLU()(x)
     x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=1, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
@@ -358,11 +381,11 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
 def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, color=False):
 
     # Prepare data
-    train_data = SortedNumberGenerator(batch_size=batch_size, subset='train', terms=terms,
+    train_data = HumanActivityDataGenerator(batch_size=batch_size, subset='train', terms=terms,
                                        positive_samples=batch_size // 2, predict_terms=predict_terms,
                                        image_size=image_size, color=color, rescale=True)
 
-    validation_data = SortedNumberGenerator(batch_size=batch_size, subset='valid', terms=terms,
+    validation_data = HumanActivityDataGenerator(batch_size=batch_size, subset='val', terms=terms,
                                             positive_samples=batch_size // 2, predict_terms=predict_terms,
                                             image_size=image_size, color=color, rescale=True)
 
@@ -416,7 +439,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
     for epoch in range(args.gan_epochs):
         #print(len(train_data))
-        for i in range(len(train_data) // 1):
+        for i in range(len(train_data)):
             #print("xxxxxxxxxxxxxxx")
             t0 = time.time()
 
@@ -435,7 +458,8 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
             t2 = time.time()
             # print("time elapsed:", t1 - t0, t2-t1)
-
+            sys.stdout.write(
+                '\r Epoch {}: training[{} / {}]'.format(epoch, i, len(train_data)))
 
         ###################  Validation   ###################
 
@@ -458,8 +482,12 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
             for j in range(cols):
                 axs[i,j].imshow(imgs[i,j] )
                 axs[i,j].axis('off')
-        fig.savefig("images/cpcgan41_100x_%d.png" % epoch)
-        plt.close()
+
+        if not os.path.exists('images/'):
+            os.makedirs('images/')
+        if not os.path.exists(os.path.join('images', args.name)):
+            os.makedirs(os.path.join('images', args.name))
+        fig.savefig(os.path.join('images', args.name, 'epoch%d.png' % epoch))
 
 
 if __name__ == "__main__":
@@ -498,10 +526,10 @@ if __name__ == "__main__":
 
     args.predict_terms = 4
     args.code_size = 64
-    args.batch_size = 128
+    args.batch_size = 32
     args.color = False
     args.terms = 4
-    #args.load_name = "models"# 'cpc_models'
+    # args.load_name = "models"# 'cpc_models'
 
     train_model(
         args,
@@ -511,6 +539,6 @@ if __name__ == "__main__":
         lr=args.lr,
         terms=args.terms,
         predict_terms=args.predict_terms,
-        image_size=28,
+        image_size=112,
         color=args.color
     )
