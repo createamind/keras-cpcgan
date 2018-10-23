@@ -268,8 +268,7 @@ def network_autoregressive(x):
 
     # x = keras.layers.GRU(units=256, return_sequences=True)(x)
     # x = keras.layers.BatchNormalization()(x)
-    x = keras.layers.GRU(units=256, return_sequences=False, name='ar_context')(x)
-
+    x = keras.layers.GRU(units=256, return_sequences=True, name='ar_context')(x)
     return x
 
 
@@ -279,7 +278,8 @@ def network_prediction(context, code_size, predict_terms):
 
     outputs = []
     for i in range(predict_terms):
-        outputs.append(keras.layers.Dense(units=code_size, activation="linear", name='z_t_{i}'.format(i=i))(context))
+        outputs.append(keras.layers.Dense(units=code_size, activation="linear", name='z_t_{i}'.format(i=i))(
+            keras.layers.Lambda(lambda x: x[:, i])(context)))
 
     if len(outputs) == 1:
         output = keras.layers.Lambda(lambda x: K.expand_dims(x, axis=1))(outputs[0])
@@ -328,6 +328,7 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
     # Define rest of model
     x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2]))
     x_encoded = TimeDistributed(encoder_model)(x_input)
+    assert terms == predict_terms
     context = network_autoregressive(x_encoded)
     preds = network_prediction(context, code_size, predict_terms)
 
@@ -458,7 +459,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
             for j in range(cols):
                 axs[i,j].imshow(imgs[i,j] )
                 axs[i,j].axis('off')
-        fig.savefig("images/cpcgan41_100x_%d.png" % epoch)
+        fig.savefig("images/cpcgan41_%s_%d.png" % (args.name, epoch))
         plt.close()
 
 

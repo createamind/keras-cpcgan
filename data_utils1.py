@@ -7,7 +7,7 @@ from PIL import Image
 import scipy
 import sys
 from matplotlib import pyplot as plt
-
+import random
 
 class MnistHandler(object):
 
@@ -267,7 +267,17 @@ class SortedNumberGenerator(object):
 
             # Set ordered predictions for positive samples
             seed = np.random.randint(0, 10)
-            sentence = np.mod(np.arange(seed, seed + self.terms + self.predict_terms), 10)
+            assert self.terms == self.predict_terms
+
+            if self.subset == 'train':
+                number_left = random.randint(0,2500)
+                number_right = number_left + 1
+            else:
+                number_left = random.randint(2501,4999)
+                number_right = number_left + 1
+
+            # sentence = np.mod(np.arange(seed, seed + self.terms + self.predict_terms), 10)
+            sentence = list(map(int, list('%.4d%.4d' % (number_left, number_right))))
 
             if positive_samples_n <= 0:
 
