@@ -58,7 +58,8 @@ class HumanActivityDataGenerator(object):
             random_pos = random.randint(self.terms, self.tot - self.predict_terms)
             term_images = self.images[random_pos - self.terms: random_pos]
             true_images = self.images[random_pos: random_pos + self.predict_terms]
-            false_images = [self.images[random.randint(0, self.tot - 1)] for i in range(self.predict_terms)]
+            false_images=  list(reversed(true_images))
+            #false_images = [self.images[random.randint(0, self.tot - 1)] for i in range(self.predict_terms)]
             if sentence_labels[b] == 0:
                 x.append(term_images)
                 y.append(false_images)
