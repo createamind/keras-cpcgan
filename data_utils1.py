@@ -67,7 +67,7 @@ class MnistHandler(object):
         X_test = load_mnist_images('resources/t10k-images-idx3-ubyte.gz')
         y_test = load_mnist_labels('resources/t10k-labels-idx1-ubyte.gz')
 
-        # We reserve the last 10000 training examples for validation.
+        # We reserve the last 10000 training examples for valation.
         X_train, X_val = X_train[:-10000], X_train[-10000:]
         y_train, y_val = y_train[:-10000], y_train[-10000:]
 
@@ -129,7 +129,7 @@ class MnistHandler(object):
         if subset == 'train':
             X = self.X_train
             y = self.y_train
-        elif subset == 'valid':
+        elif subset == 'val':
             X = self.X_val
             y = self.y_val
         elif subset == 'test':
@@ -154,7 +154,7 @@ class MnistHandler(object):
         if subset == 'train':
             X = self.X_train
             y = self.y_train
-        elif subset == 'valid':
+        elif subset == 'val':
             X = self.X_val
             y = self.y_val
         elif subset == 'test':
@@ -181,7 +181,7 @@ class MnistHandler(object):
 
         if subset == 'train':
             y_len = self.y_train.shape[0]
-        elif subset == 'valid':
+        elif subset == 'val':
             y_len = self.y_val.shape[0]
         elif subset == 'test':
             y_len = self.y_test.shape[0]

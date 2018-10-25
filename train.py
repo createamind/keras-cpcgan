@@ -18,7 +18,8 @@ from keras.optimizers import RMSprop
 from keras.utils import multi_gpu_model
 
 from data_utils1 import SortedNumberGenerator
-from data_human_walking import HumanActivityDataGenerator
+from data_utils_generated import GeneratedNumberGenerator
+from data_video import VideoDataGenerator
 from os.path import join, basename, dirname, exists
 
 from tqdm import tqdm
@@ -40,6 +41,7 @@ if not os.path.exists('images/args.name'):
 #     os.makedirs('models/args.name')
 if not os.path.exists('models/'):
     os.makedirs('models/')
+
 
 class RandomWeightedAverage(_Merge):
     """Provides a (random) weighted average between real and generated image samples"""
@@ -64,8 +66,8 @@ def time_distributed(model, inputs):
 
 class WGANGP():
     def __init__(self, args, pc, encoder, cpc_sigma):
-        self.img_rows = 112
-        self.img_cols = 112
+        self.img_rows = args.image_size
+        self.img_cols = args.image_size
         self.channels = 3 if args.color else 1
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.latent_dim = args.code_size
@@ -80,8 +82,8 @@ class WGANGP():
         optimizer = RMSprop(lr=0.00005)
 
         # Build the generator and critic
-        self.generator = self.build_generator()
-        self.critic = self.build_critic()
+        self.generator = self.build_generator(self.img_rows)
+        self.critic = self.build_critic(self.img_rows)
 
         #-------------------------------
         # Construct Computational Graph
@@ -183,7 +185,7 @@ class WGANGP():
     def wasserstein_loss(self, y_true, y_pred):
         return K.mean(y_true * y_pred)
 
-    def build_generator(self):
+    def build_generator(self, image_size):
 
         model = Sequential()
 
@@ -194,17 +196,27 @@ class WGANGP():
         model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
         model.add(UpSampling2D())
-        model.add(Conv2D(128, kernel_size=4, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Activation("relu"))
-        model.add(UpSampling2D())
+
+        if image_size >= 64:
+            model.add(Conv2D(128, kernel_size=4, padding="same"))
+            model.add(BatchNormalization(momentum=0.8))
+            model.add(Activation("relu"))
+            model.add(UpSampling2D())
+        if image_size >= 112:
+            model.add(Conv2D(128, kernel_size=4, padding="same"))
+            model.add(BatchNormalization(momentum=0.8))
+            model.add(Activation("relu"))
+            model.add(UpSampling2D())
+        if image_size >= 224:
+            model.add(Conv2D(64, kernel_size=4, padding="same"))
+            model.add(BatchNormalization(momentum=0.8))
+            model.add(Activation("relu"))
+            model.add(UpSampling2D())
+
         model.add(Conv2D(64, kernel_size=4, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
-        model.add(UpSampling2D())
-        model.add(Conv2D(64, kernel_size=4, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Activation("relu"))
+        
         model.add(Conv2D(self.channels, kernel_size=4, padding="same"))
         model.add(Activation("tanh"))
 
@@ -215,7 +227,7 @@ class WGANGP():
 
         return Model(noise, img)
 
-    def build_critic(self):
+    def build_critic(self, image_size):
 
         model = Sequential()
 
@@ -231,14 +243,23 @@ class WGANGP():
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dropout(0.25))
-        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dropout(0.25))
+
+        if image_size >= 64:
+            model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
+            model.add(BatchNormalization(momentum=0.8))
+            model.add(LeakyReLU(alpha=0.2))
+            model.add(Dropout(0.25))
+        if image_size >= 112:
+            model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
+            model.add(BatchNormalization(momentum=0.8))
+            model.add(LeakyReLU(alpha=0.2))
+            model.add(Dropout(0.25))
+        if image_size >= 224:
+            model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
+            model.add(BatchNormalization(momentum=0.8))
+            model.add(LeakyReLU(alpha=0.2))
+            model.add(Dropout(0.25))
+            
         model.add(Conv2D(128, kernel_size=3, strides=1, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
@@ -259,7 +280,7 @@ class WGANGP():
 This module describes the contrastive predictive coding model from DeepMind
 '''
 
-def network_encoder(x, code_size):
+def network_encoder(x, code_size, image_size):
 
     ''' Define the network mapping images to embeddings '''
 
@@ -275,12 +296,22 @@ def network_encoder(x, code_size):
     x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
-    x = keras.layers.BatchNormalization()(x)
-    x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
-    x = keras.layers.BatchNormalization()(x)
-    x = keras.layers.LeakyReLU()(x)
+
+    if image_size >= 64:
+        x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
+        x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.LeakyReLU()(x)
+
+    if image_size >= 112:
+        x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
+        x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.LeakyReLU()(x)
+
+    if image_size >= 224:
+        x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
+        x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.LeakyReLU()(x)
+
     x = keras.layers.Flatten()(x)
     x = keras.layers.Dense(units=256, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
@@ -349,7 +380,7 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
 
     # Define encoder model
     encoder_input = keras.layers.Input(image_shape)
-    encoder_output = network_encoder(encoder_input, code_size)
+    encoder_output = network_encoder(encoder_input, code_size, image_shape[0])
     encoder_model = keras.models.Model(encoder_input, encoder_output, name='encoder')
     encoder_model.summary()
 
@@ -383,16 +414,37 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
 
 
 
-def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, color=False):
+def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, color=False, dataset='ucf'):
 
-    # Prepare data
-    train_data = HumanActivityDataGenerator(batch_size=batch_size, subset='train', terms=terms,
-                                       positive_samples=batch_size // 2, predict_terms=predict_terms,
-                                       image_size=image_size, color=color, rescale=True)
+    if dataset == 'ucf' or dataset == 'walking' or dataset == 'baby':
+        # Prepare data
+        train_data = VideoDataGenerator(batch_size=batch_size, subset='train', terms=terms,
+                                        positive_samples=batch_size // 2, predict_terms=predict_terms,
+                                        image_size=image_size, color=color, rescale=True, dataset=dataset)
 
-    validation_data = HumanActivityDataGenerator(batch_size=batch_size, subset='val', terms=terms,
-                                            positive_samples=batch_size // 2, predict_terms=predict_terms,
-                                            image_size=image_size, color=color, rescale=True)
+        validation_data = VideoDataGenerator(batch_size=batch_size, subset='val', terms=terms,
+                                                positive_samples=batch_size // 2, predict_terms=predict_terms,
+                                                image_size=image_size, color=color, rescale=True, dataset=dataset)
+
+    elif dataset == 'generated':
+        train_data = GeneratedNumberGenerator(batch_size=batch_size, subset='train', terms=terms,
+                                        positive_samples=batch_size // 2, predict_terms=predict_terms,
+                                        image_size=image_size, color=color, rescale=True)
+
+        validation_data = GeneratedNumberGenerator(batch_size=batch_size, subset='val', terms=terms,
+                                                positive_samples=batch_size // 2, predict_terms=predict_terms,
+                                                image_size=image_size, color=color, rescale=True)
+
+    elif dataset == 'mnist':
+        train_data = SortedNumberGenerator(batch_size=batch_size, subset='train', terms=terms,
+                                        positive_samples=batch_size // 2, predict_terms=predict_terms,
+                                        image_size=image_size, color=color, rescale=True)
+
+        validation_data = SortedNumberGenerator(batch_size=batch_size, subset='val', terms=terms,
+                                                positive_samples=batch_size // 2, predict_terms=predict_terms,
+                                                image_size=image_size, color=color, rescale=True)
+    else:
+        raise NotImplementedError
 
 
     channel = 3 if color else 1
@@ -453,7 +505,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
     for epoch in range(args.gan_epochs):
         #print(len(train_data))
-        for i in range(len(train_data)):
+        for i in range(len(train_data) // 1):
             #print("xxxxxxxxxxxxxxx")
             t0 = time.time()
 
@@ -501,14 +553,9 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
             os.makedirs('images/')
         if not os.path.exists(os.path.join('images', args.name)):
             os.makedirs(os.path.join('images', args.name))
-        fig.savefig(os.path.join('images', args.name, 'epoch%d.png' % epoch))
-        # Saves the model
-        # Remember to add custom_objects={'CPCLayer': CPCLayer} to load_model when loading from disk
+        fig.savefig(os.path.join('images', args.name, 'epoch%d.png' % epoch), dpi=1500)
         gan.generator_model.save(join(output_dir, 'generator_' + args.name + '.h5'))
-
-        # Saves the encoder alone
         gan.critic_model.save(join(output_dir, 'dis_' + args.name + '.h5'))
-
 
 if __name__ == "__main__":
 
@@ -521,7 +568,11 @@ if __name__ == "__main__":
     argparser.add_argument(
         '--load-name',
         default='',
-        help='loadpath')
+        help='load name (use "models" if wanted)')
+    argparser.add_argument(
+        '--dataset',
+        default='ucf',
+        help='ucf[default], walking, mnist, generated')
     argparser.add_argument(
         '-e', '--cpc-epochs',
         default=1,
@@ -533,23 +584,66 @@ if __name__ == "__main__":
         type=int,
         help='gan epochs')
     argparser.add_argument(
+        '--predict-terms',
+        default=4,
+        type=int,
+        help='predict-terms')
+    argparser.add_argument(
+        '--batch-size',
+        default=8,
+        type=int,
+        help='batch_size')
+    argparser.add_argument(
+        '--terms',
+        default=4,
+        type=int,
+        help='terms')
+    argparser.add_argument(
+        '--code-size',
+        default=64,
+        type=int,
+        help='code size')
+    argparser.add_argument(
         '--lr',
         default=1e-3,
         type=float,
         help='Learning rate')
+    argparser.add_argument(
+        '--cpc-weight',
+        default=10.0,
+        type=float,
+        help='Learning rate')
+    argparser.add_argument(
+        '--gan-weight',
+        default=1.0,
+        type=float,
+        help='Learning rate')
     argparser.add_argument('--doctor', action='store_true', default=False, help='Doctor')
+    argparser.add_argument('--color', action='store_true', default=False, help='Color')
 
     args = argparser.parse_args()
 
     args.gan_weight = 1.0
     args.cpc_weight = 100.0
-
     args.predict_terms = 4
     args.code_size = 64
     args.batch_size = 32
     args.color = False
     args.terms = 4
-    # args.load_name = "models"# 'cpc_models'
+    # args.load_name = "models"
+
+    # args.dataset = "ucf" # 
+    # args.dataset = "mnist" # 
+    # args.dataset = "generated" # 
+    # args.dataset = "walking" # 
+
+    if args.dataset == 'ucf' or args.dataset == 'baby':
+        args.image_size = 224
+    elif args.dataset == 'walking':
+        args.image_size = 112
+    else:
+        args.image_size = 28
+
 
     train_model(
         args,
@@ -559,6 +653,7 @@ if __name__ == "__main__":
         lr=args.lr,
         terms=args.terms,
         predict_terms=args.predict_terms,
-        image_size=112,
-        color=args.color
+        image_size=args.image_size,
+        color=args.color,
+        dataset=args.dataset
     )
