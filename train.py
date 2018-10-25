@@ -33,6 +33,12 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import os
+if not os.path.exists('images/args.name'):
+    os.makedirs('images/args.name')
+#if not os.path.exists('date/args.name'):
+#    os.makedirs('date/args.name')
+# if not os.path.exists('models/args.name'):
+#     os.makedirs('models/args.name')
 if not os.path.exists('models/'):
     os.makedirs('models/')
 
@@ -469,14 +475,22 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
         # Saves the model
         # Remember to add custom_objects={'CPCLayer': CPCLayer} to load_model when loading from disk
-        model.save(join(output_dir, 'cpc.h5'))
+        #model.save(join('models', args.name, 'cpc.h5'))   #'images', args.name, 'epoch%d.png' % epoch))
 
         # Saves the encoder alone
-        pc.save(join(output_dir, 'pc.h5'))
-        encoder.save(join(output_dir, 'encoder.h5'))
+        #pc.save(join(output_dir, 'pc.h5'))
+        #encoder.save(join(output_dir, 'encoder.h5'))
         # time.sleep(3)
         # pc = keras.models.load_model(join('cpc_models', 'pc.h5'))
         # encoder = keras.models.load_model(join('cpc_models', 'encoder.h5'))
+
+        # Saves the model
+        # Remember to add custom_objects={'CPCLayer': CPCLayer} to load_model when loading from disk
+        model.save(join(output_dir, 'cpc_' + args.name + '.h5'))
+        pc.save(join(output_dir, 'pc_' + args.name + '.h5'))
+        # Saves the encoder alone
+        #encoder = model.layers[1].layer
+        encoder.save(join(output_dir, 'encoder_' + args.name + '.h5'))
 
     print("Start Training GAN")
     cpc_sigma = CPCLayer()
@@ -539,7 +553,8 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
         if not os.path.exists(os.path.join('images', args.name)):
             os.makedirs(os.path.join('images', args.name))
         fig.savefig(os.path.join('images', args.name, 'epoch%d.png' % epoch), dpi=1500)
-
+        gan.generator_model.save(join(output_dir, 'generator_' + args.name + '.h5'))
+        gan.critic_model.save(join(output_dir, 'dis_' + args.name + '.h5'))
 
 if __name__ == "__main__":
 
@@ -607,14 +622,13 @@ if __name__ == "__main__":
 
     args = argparser.parse_args()
 
-    # args.gan_weight = 1.0
-    # args.cpc_weight = 10.0
-    # args.terms = 4
-    # args.predict_terms = 4
-    # args.code_size = 64
-    # args.batch_size = 8
-    # args.color = False
-
+    args.gan_weight = 1.0
+    args.cpc_weight = 100.0
+    args.predict_terms = 4
+    args.code_size = 64
+    args.batch_size = 32
+    args.color = False
+    args.terms = 4
     # args.load_name = "models"
 
     # args.dataset = "ucf" # 
