@@ -399,10 +399,11 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
     model, pc, encoder = network_cpc(image_shape=(image_size, image_size, channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
 
     if len(args.load_name) > 0:
-        pc = keras.models.load_model(join(args.load_name, 'pc.h5'))#,custom_objects={'CPCLayer': CPCLayer})
-        encoder = keras.models.load_model(join(args.load_name, 'encoder.h5'))
+        pc = keras.models.load_model(join(output_dir, 'pc_' + args.load_name + '.h5'))#,custom_objects={'CPCLayer': CPCLayer})
+        encoder = keras.models.load_model(join(output_dir, 'encoder_' + args.load_name + '.h5'))
+        model = keras.models.load_model(join(output_dir, 'cpc_' + args.load_name + '.h5'),custom_objects={'CPCLayer': CPCLayer})
 
-    else:
+    if True :
         print('Start Training CPC')
 
         #model = keras.models.load_model(join('cpc_models', 'cpc.h5'),custom_objects={'CPCLayer': CPCLayer})
