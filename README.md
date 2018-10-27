@@ -1,6 +1,9 @@
 
 
-cpc-gan ref: https://github.com/davidtellez/contrastive-predictive-coding
+cpc-gan 
+code ref: https://github.com/davidtellez/contrastive-predictive-coding
+
+explanation： https://mp.weixin.qq.com/s?__biz=MzA5MDMwMTIyNQ==&mid=2649293567&idx=1&sn=ebaf1632f04bab16b0cc3fb8fff9f320&chksm=881014b9bf679dafdbc94b350ad67cbad94b7363c5053f37d3881aed395828c624cfeafd6202&token=212101831&lang=zh_CN#rd
 
 result_fig/cpcgan41_10_0.png
 
