@@ -1,5 +1,7 @@
 
 
+cpc-gan ref: https://github.com/davidtellez/contrastive-predictive-coding
+
 result_fig/cpcgan41_10_0.png
 
 <p align="center">
