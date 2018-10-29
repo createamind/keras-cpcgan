@@ -8,7 +8,7 @@ class VideoDataGenerator(object):
 
     ''' Data generator providing lists of sorted numbers '''
 
-    def __init__(self, batch_size, subset, terms, positive_samples=1, predict_terms=1, image_size=28, color=False, rescale=True, dataset='ucf'):
+    def __init__(self, batch_size, subset, terms, positive_samples=1, predict_terms=1, image_size=28, color=False, rescale=True, dataset='ucf', frame_stack = 2):
 
         # Set params
         self.positive_samples = positive_samples
@@ -27,14 +27,21 @@ class VideoDataGenerator(object):
                 if True:
                     images = []
                     for _, _, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
-                        for name in sorted(files):
+                        images = []
+                        c = 0
+                        frames = []
+                        for name in sorted(files)[:30]:
                             # print('Reading from ' + name)
                             image = scipy.ndimage.imread(os.path.join('./data/', dataset, subset, dir_name, name))
                             if dataset == 'walking':
                                 image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
                             else:
                                 image = (scipy.misc.imresize(image, [224, 224]).astype(float) - 127) / 128.0
-                            images.append(image[:, :, :1])
+                            c = (c + 1) % frame_stack
+                            frames.append(image[:, :, :1])  
+                            if c == 0:
+                                images.append(copy.deepcopy(frames))
+                                frames = []
                     self.videos.append(copy.deepcopy(images))
             break
         self.n_samples = 3000 if subset == 'train' else 600

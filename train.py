@@ -16,7 +16,7 @@ from keras.layers.advanced_activations import LeakyReLU
 from keras.models import *
 from keras.layers import *
 from keras.optimizers import *
-from keras.layers.convolutional import UpSampling2D, Conv2D
+from keras.layers.convolutional import UpSampling2D, Conv3D, Conv3D, UpSampling3D
 from keras.optimizers import RMSprop
 from keras.utils import multi_gpu_model
 
@@ -48,12 +48,13 @@ if not os.path.exists('models/'):
 
 class RandomWeightedAverage(_Merge):
     """Provides a (random) weighted average between real and generated image samples"""
-    def __init__(self, batch_size, predict_terms):
+    def __init__(self, batch_size, predict_terms, frame_stack):
         super(RandomWeightedAverage, self).__init__()
         self.batch_size = batch_size
         self.predict_terms = predict_terms
+        self.frame_stack = frame_stack
     def _merge_function(self, inputs):
-        alpha = K.random_uniform((self.batch_size, self.predict_terms, 1, 1, 1))
+        alpha = K.random_uniform((self.batch_size, self.predict_terms, self.frame_stack, 1, 1, 1))
         return (alpha * inputs[0]) + ((1 - alpha) * inputs[1])
 
 
@@ -75,7 +76,7 @@ class WGANGP():
         self.img_rows = args.image_size
         self.img_cols = args.image_size
         self.channels = 3 if args.color else 1
-        self.img_shape = (self.img_rows, self.img_cols, self.channels)
+        self.img_shape = (args.frame_stack, self.img_rows, self.img_cols, self.channels)
         self.latent_dim = args.code_size
         self.predict_terms = args.predict_terms
         self.terms = args.terms
@@ -88,8 +89,8 @@ class WGANGP():
         optimizer = RMSprop(lr=0.00005)
 
         # Build the generator and critic
-        self.generator = self.build_generator(self.img_rows)
-        self.critic = self.build_critic(self.img_rows)
+        self.generator = self.build_generator(self.img_rows, args)
+        self.critic = self.build_critic(self.img_rows, args)
 
         #-------------------------------
         # Construct Computational Graph
@@ -100,12 +101,12 @@ class WGANGP():
         self.generator.trainable = False
 
         # Image input (real sample)
-        real_img = Input(shape=(self.predict_terms, self.img_rows, self.img_cols, self.channels))
+        real_img = Input(shape=(self.predict_terms, args.frame_stack, self.img_rows, self.img_cols, self.channels))
 
         # Noise input
         z_disc = Input(shape=(self.predict_terms, self.latent_dim))
 
-        x_img = Input(shape=(self.terms, self.img_rows, self.img_cols, self.channels))
+        x_img = Input(shape=(self.terms, args.frame_stack, self.img_rows, self.img_cols, self.channels))
         x_img_last = Lambda(lambda x_img: x_img[:, -1])(x_img)
         pred = pc(x_img)  # pred = W_k * C_t
 
@@ -121,7 +122,7 @@ class WGANGP():
 
 
         # Construct weighted average between real and fake images
-        interpolated_img = RandomWeightedAverage(args.batch_size, args.predict_terms)([real_img, fake_img])
+        interpolated_img = RandomWeightedAverage(args.batch_size, args.predict_terms, args.frame_stack)([real_img, fake_img])
         # Determine validity of weighted sample
         #validity_interpolated = self.critic(interpolated_img)
         validity_interpolated = time_distributed(self.critic,interpolated_img)
@@ -199,13 +200,13 @@ class WGANGP():
     #     model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.latent_dim * 2))
     #     model.add(Reshape((7, 7, 128)))
     #     model.add(UpSampling2D())
-    #     model.add(Conv2D(128, kernel_size=4, padding="same"))
+    #     model.add(Conv3D(128, kernel_size=4, padding="same"))
     #     model.add(BatchNormalization(momentum=0.8))
     #     model.add(Activation("relu"))
     #     model.add(UpSampling2D())
 
     #     if image_size >= 64:
-    #         model.add(Conv2D(128, kernel_size=4, padding="same"))
+    #         model.add(Conv3D(128, kernel_size=4, padding="same"))
     #         model.add(BatchNormalization(momentum=0.8))
     #         model.add(Activation("relu"))
     #         model.add(UpSampling2D())
@@ -236,7 +237,7 @@ class WGANGP():
  
 
 
-    def build_generator(self, image_size):
+    def build_generator(self, image_size, args):
 
         # model = Sequential()
 
@@ -276,51 +277,51 @@ class WGANGP():
         noise = Input(shape=(self.latent_dim * 2,))
         refimg = Input(shape=self.img_shape)
 
-        conv1 = Conv2D(16, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(refimg)
-        conv1 = Conv2D(16, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv1)
-        pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
-        conv2 = Conv2D(32, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool1)
-        conv2 = Conv2D(32, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv2)
-        pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
-        conv3 = Conv2D(32, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool2)
-        conv3 = Conv2D(32, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv3)
-        pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
-        conv4 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool3)
-        conv4 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv4)
+        conv1 = Conv3D(16, (1,3,3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(refimg)
+        conv1 = Conv3D(16, (1,3,3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv1)
+        pool1 = MaxPooling3D(pool_size=(1, 2, 2))(conv1)
+        conv2 = Conv3D(32, (1,3,3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool1)
+        conv2 = Conv3D(32, (1,3,3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv2)
+        pool2 = MaxPooling3D(pool_size=(1, 2, 2))(conv2)
+        conv3 = Conv3D(32, (1,3,3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool2)
+        conv3 = Conv3D(32, (1,3,3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv3)
+        pool3 = MaxPooling3D(pool_size=(1, 2, 2))(conv3)
+        conv4 = Conv3D(64, (1,3,3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool3)
+        conv4 = Conv3D(64, (1,3,3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv4)
         drop4 = Dropout(0.5)(conv4)
-        pool4 = MaxPooling2D(pool_size=(2, 2))(drop4)
+        pool4 = MaxPooling3D(pool_size=(1, 2, 2))(drop4)
 
-        conv5 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool4)
-        conv5 = Conv2D(8, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv5)
+        conv5 = Conv3D(64, (1,3,3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool4)
+        conv5 = Conv3D(8, (1,3,3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv5)
         drop5 = Dropout(0.5)(conv5)
 
-        middle = Reshape(target_shape=(14 * 14 * 8,))(drop5)
+        middle = Reshape(target_shape=(14 * 14 * 8 * args.frame_stack,))(drop5)
         middle = Dense(units=self.latent_dim, activation='relu')(middle)
         middle = concatenate([middle, noise], axis=-1)
-        middle = Dense(units = 8 * 14 * 14, activation='relu')(middle)
-        middle = Reshape(target_shape=(14, 14, 8,))(middle)
+        middle = Dense(units = 8 * 14 * 14 * args.frame_stack, activation='relu')(middle)
+        middle = Reshape(target_shape=(args.frame_stack, 14, 14, 8,))(middle)
 
-        up6 = Conv2D(64, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(middle))
-        merge6 = concatenate([drop4,up6], axis = 3)
-        conv6 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge6)
-        conv6 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv6)
+        up6 = Conv3D(64, (1,2,2), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling3D(size = (1,2,2))(middle))
+        merge6 = concatenate([drop4,up6], axis = -1)
+        conv6 = Conv3D(64, (1, 3, 3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge6)
+        conv6 = Conv3D(64, (1, 3, 3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv6)
 
-        up7 = Conv2D(64, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(conv6))
-        merge7 = concatenate([conv3,up7], axis = 3)
-        conv7 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge7)
-        conv7 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv7)
+        up7 = Conv3D(64, (1,2,2), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling3D(size = (1,2,2))(conv6))
+        merge7 = concatenate([conv3,up7], axis = -1)
+        conv7 = Conv3D(64, (1, 3, 3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge7)
+        conv7 = Conv3D(64, (1, 3, 3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv7)
 
-        up8 = Conv2D(32, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(conv7))
-        merge8 = concatenate([conv2,up8], axis = 3)
-        conv8 = Conv2D(32, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge8)
-        conv8 = Conv2D(32, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv8)
+        up8 = Conv3D(32, (1,2,2), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling3D(size = (1,2,2))(conv7))
+        merge8 = concatenate([conv2,up8], axis = -1)
+        conv8 = Conv3D(32, (1, 3, 3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge8)
+        conv8 = Conv3D(32, (1, 3, 3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv8)
 
-        up9 = Conv2D(16, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(conv8))
-        merge9 = concatenate([conv1,up9], axis = 3)
-        conv9 = Conv2D(16, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge9)
-        conv9 = Conv2D(16, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
-        conv9 = Conv2D(2, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
-        conv10 = Conv2D(1, 1, activation = 'tanh')(conv9)
+        up9 = Conv3D(16, (1,2,2), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling3D(size = (1,2,2))(conv8))
+        merge9 = concatenate([conv1,up9], axis = -1)
+        conv9 = Conv3D(16, (1, 3, 3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge9)
+        conv9 = Conv3D(16, (1, 3, 3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
+        conv9 = Conv3D(2, (1, 3, 3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
+        conv10 = Conv3D(1, 1, activation = 'tanh')(conv9)
 
         model = Model(input = [noise, refimg], output = conv10)
 
@@ -329,40 +330,40 @@ class WGANGP():
         return model
 
 
-    def build_critic(self, image_size):
+    def build_critic(self, image_size, args):
 
         model = Sequential()
 
-        model.add(Conv2D(16, kernel_size=3, strides=2, input_shape=self.img_shape, padding="same"))
+        model.add(Conv3D(16, kernel_size=(1,3,3), strides=(1,2,2), input_shape=self.img_shape, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv2D(32, kernel_size=3, strides=2, padding="same"))
-        model.add(ZeroPadding2D(padding=((0,1),(0,1))))
+        model.add(Conv3D(32, kernel_size=(1,3,3), strides=(1,2,2), padding="same"))
+        model.add(ZeroPadding3D(padding=((0,0), ( 0,1),( 0,1))))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
+        model.add(Conv3D(64, kernel_size=(1,3,3), strides=(1,2,2), padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
 
         if image_size >= 64:
-            model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
+            model.add(Conv3D(64, kernel_size=(1,3,3), strides=(1,2,2), padding="same"))
             model.add(BatchNormalization(momentum=0.8))
             model.add(LeakyReLU(alpha=0.2))
             model.add(Dropout(0.25))
         if image_size >= 112:
-            model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
+            model.add(Conv3D(64, kernel_size=(1,3,3), strides=(1,2,2), padding="same"))
             model.add(BatchNormalization(momentum=0.8))
             model.add(LeakyReLU(alpha=0.2))
             model.add(Dropout(0.25))
         if image_size >= 224:
-            model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
+            model.add(Conv3D(64, kernel_size=(1,3,3), strides=(1,2,2), padding="same"))
             model.add(BatchNormalization(momentum=0.8))
             model.add(LeakyReLU(alpha=0.2))
             model.add(Dropout(0.25))
             
-        model.add(Conv2D(128, kernel_size=3, strides=1, padding="same"))
+        model.add(Conv3D(128, kernel_size=(1,3,3), strides=(1,1,1), padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
@@ -386,31 +387,31 @@ def network_encoder(x, code_size, image_size):
 
     ''' Define the network mapping images to embeddings '''
 
-    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=1, activation='linear')(x)
+    x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=1, activation='linear')(x)
+    x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=1, activation='linear')(x)
+    x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
+    x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
 
     if image_size >= 64:
-        x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
+        x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.LeakyReLU()(x)
 
     if image_size >= 112:
-        x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
+        x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.LeakyReLU()(x)
 
     if image_size >= 224:
-        x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
+        x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.LeakyReLU()(x)
 
@@ -482,17 +483,17 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
 
     # Define encoder model
     encoder_input = keras.layers.Input(image_shape)
-    encoder_output = network_encoder(encoder_input, code_size, image_shape[0])
+    encoder_output = network_encoder(encoder_input, code_size, image_shape[1])
     encoder_model = keras.models.Model(encoder_input, encoder_output, name='encoder')
     encoder_model.summary()
 
     # Define rest of model
-    x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2]))
+    x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2], image_shape[3]))
     x_encoded = TimeDistributed(encoder_model)(x_input)
     context = network_autoregressive(x_encoded)
     preds = network_prediction(context, code_size, predict_terms)
 
-    y_input = keras.layers.Input((predict_terms, image_shape[0], image_shape[1], image_shape[2]))
+    y_input = keras.layers.Input((predict_terms, image_shape[0], image_shape[1], image_shape[2], image_shape[3]))
     y_encoded = TimeDistributed(encoder_model)(y_input)
 
     # Loss
@@ -516,17 +517,17 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
 
 
 
-def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, color=False, dataset='ucf'):
+def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, color=False, dataset='ucf', frame_stack=2):
 
     if dataset == 'ucf' or dataset == 'walking' or dataset == 'baby':
         # Prepare data
         train_data = VideoDataGenerator(batch_size=batch_size, subset='train', terms=terms,
                                         positive_samples=batch_size // 2, predict_terms=predict_terms,
-                                        image_size=image_size, color=color, rescale=True, dataset=dataset)
+                                        image_size=image_size, color=color, rescale=True, dataset=dataset, frame_stack=frame_stack)
 
         validation_data = VideoDataGenerator(batch_size=batch_size, subset='val', terms=terms,
                                                 positive_samples=batch_size // 2, predict_terms=predict_terms,
-                                                image_size=image_size, color=color, rescale=True, dataset=dataset)
+                                                image_size=image_size, color=color, rescale=True, dataset=dataset, frame_stack=frame_stack)
 
     elif dataset == 'generated':
         train_data = GeneratedNumberGenerator(batch_size=batch_size, subset='train', terms=terms,
@@ -550,7 +551,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
 
     channel = 3 if color else 1
-    model, pc, encoder = network_cpc(image_shape=(image_size, image_size, channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
+    model, pc, encoder = network_cpc(image_shape=(frame_stack, image_size, image_size, channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
 
     if len(args.load_name) > 0:
         pc = keras.models.load_model(join(output_dir, 'pc_' + args.load_name + '.h5'))#,custom_objects={'CPCLayer': CPCLayer})
@@ -639,6 +640,9 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
         gen_img = gen_model.predict([x_img[0:rows,...],noise[0:rows,...]])
         gen_img = (gen_img + 1)*0.5
 
+        init_img = init_img[:,0]
+        gen_img = gen_img[:,0]
+
         imgs = np.concatenate((init_img,gen_img),axis=1)
 
         if imgs.shape[-1] == 1:
@@ -706,6 +710,11 @@ if __name__ == "__main__":
         type=int,
         help='code size')
     argparser.add_argument(
+        '--frame-stack',
+        default=2,
+        type=int,
+        help='frame stack')
+    argparser.add_argument(
         '--lr',
         default=1e-3,
         type=float,
@@ -729,7 +738,6 @@ if __name__ == "__main__":
     args.cpc_weight = 100.0
     args.predict_terms = 4
     args.code_size = 64
-    args.batch_size = 8
     args.color = False
     args.terms = 4
     # args.load_name = "models"
@@ -757,5 +765,6 @@ if __name__ == "__main__":
         predict_terms=args.predict_terms,
         image_size=args.image_size,
         color=args.color,
-        dataset=args.dataset
+        dataset=args.dataset,
+        frame_stack = args.frame_stack
     )

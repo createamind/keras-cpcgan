@@ -170,7 +170,7 @@ class MnistHandler(object):
             idxs.append(idx_sel)
 
         # Retrieve images
-        batch = X[np.array(idxs), 0, :].reshape((len(labels), 28, 28))
+        batch = X[np.array(idxs), 0, :].reshape((len(labels), 1, 28, 28))
 
         # Process batch
         batch = self.process_batch(batch, len(labels), image_size, color, rescale)

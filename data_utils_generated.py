@@ -60,7 +60,7 @@ class Code(object):
         for i, label in enumerate(labels):
             images.append(self.createImg(str(int(label)), np.random.uniform(-30, 30))[:, :, :1])
 
-        return (np.array(images).astype('float32') - 127) / 128.0, labels.astype('int32')
+        return (np.array(images).unsqueeze(1).astype('float32') - 127) / 128.0, labels.astype('int32')
 
 
 class GeneratedNumberGenerator(object):
