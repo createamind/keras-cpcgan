@@ -10,9 +10,12 @@ import keras
 from keras import backend as K
 from keras.models import Sequential, Model
 from keras.layers.merge import _Merge
-from keras.layers import Input, Dense, Reshape, Flatten, Dropout, concatenate, Lambda
-from keras.layers import BatchNormalization, Activation, ZeroPadding2D, TimeDistributed
+from keras.layers import Input, Dense, Reshape, Flatten, Dropout, concatenate, Lambda, merge
+from keras.layers import BatchNormalization, Activation, ZeroPadding2D, TimeDistributed, MaxPooling2D
 from keras.layers.advanced_activations import LeakyReLU
+from keras.models import *
+from keras.layers import *
+from keras.optimizers import *
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.optimizers import RMSprop
 from keras.utils import multi_gpu_model
@@ -54,9 +57,12 @@ class RandomWeightedAverage(_Merge):
         return (alpha * inputs[0]) + ((1 - alpha) * inputs[1])
 
 
-def time_distributed(model, inputs):
+def time_distributed(model, inputs, per_inputs=None):
     ''' alternative for keras.layer.TimeDistributed '''
-    outputs = [model(Lambda(lambda data: data[:,i])(inputs)) for i in range(inputs.shape[1])]
+    if per_inputs is None:
+        outputs = [model(Lambda(lambda data: data[:,i])(inputs)) for i in range(inputs.shape[1])]
+    else:
+        outputs = [model([Lambda(lambda data: data[:,i])(inputs), per_inputs]) for i in range(inputs.shape[1])]
     if len(outputs) == 1:
         output = Lambda(lambda x: K.expand_dims(x, axis=1))(outputs[0])   # if the length of the list is 1, get the element and expand its dimension.
     else:
@@ -100,12 +106,13 @@ class WGANGP():
         z_disc = Input(shape=(self.predict_terms, self.latent_dim))
 
         x_img = Input(shape=(self.terms, self.img_rows, self.img_cols, self.channels))
+        x_img_last = Lambda(lambda x_img: x_img[:, -1])(x_img)
         pred = pc(x_img)  # pred = W_k * C_t
 
         z_disc_con = concatenate([z_disc, pred],-1)
 
         # Generate image based of noise (fake sample)
-        fake_img = time_distributed(self.generator, z_disc_con)
+        fake_img = time_distributed(self.generator, z_disc_con, per_inputs=x_img_last)
         self.gen_model = Model(inputs=[x_img, z_disc], outputs=[fake_img])
 
         # Discriminator determines validity of the real and fake images
@@ -152,7 +159,7 @@ class WGANGP():
         z_gen_con = concatenate([z_gen, pred],-1)
 
         # Generate images based of noise
-        img = time_distributed(self.generator, z_gen_con)
+        img = time_distributed(self.generator, z_gen_con, per_inputs=x_img_last)
         # Discriminator determines validity
         valid = time_distributed(self.critic,img)
         # Defines generator model
@@ -185,47 +192,142 @@ class WGANGP():
     def wasserstein_loss(self, y_true, y_pred):
         return K.mean(y_true * y_pred)
 
+    # def build_generator(self, image_size):
+
+    #     model = Sequential()
+
+    #     model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.latent_dim * 2))
+    #     model.add(Reshape((7, 7, 128)))
+    #     model.add(UpSampling2D())
+    #     model.add(Conv2D(128, kernel_size=4, padding="same"))
+    #     model.add(BatchNormalization(momentum=0.8))
+    #     model.add(Activation("relu"))
+    #     model.add(UpSampling2D())
+
+    #     if image_size >= 64:
+    #         model.add(Conv2D(128, kernel_size=4, padding="same"))
+    #         model.add(BatchNormalization(momentum=0.8))
+    #         model.add(Activation("relu"))
+    #         model.add(UpSampling2D())
+    #     if image_size >= 112:
+    #         model.add(Conv2D(128, kernel_size=4, padding="same"))
+    #         model.add(BatchNormalization(momentum=0.8))
+    #         model.add(Activation("relu"))
+    #         model.add(UpSampling2D())
+    #     if image_size >= 224:
+    #         model.add(Conv2D(64, kernel_size=4, padding="same"))
+    #         model.add(BatchNormalization(momentum=0.8))
+    #         model.add(Activation("relu"))
+    #         model.add(UpSampling2D())
+
+    #     model.add(Conv2D(64, kernel_size=4, padding="same"))
+    #     model.add(BatchNormalization(momentum=0.8))
+    #     model.add(Activation("relu"))
+        
+    #     model.add(Conv2D(self.channels, kernel_size=4, padding="same"))
+    #     model.add(Activation("tanh"))
+
+    #     #model.summary()
+
+    #     noise = Input(shape=(self.latent_dim * 2,))
+    #     img = model(noise)
+
+    #     return Model(noise, img)
+ 
+
+
     def build_generator(self, image_size):
 
-        model = Sequential()
+        # model = Sequential()
 
-        model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.latent_dim * 2))
-        model.add(Reshape((7, 7, 128)))
-        model.add(UpSampling2D())
-        model.add(Conv2D(128, kernel_size=4, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Activation("relu"))
-        model.add(UpSampling2D())
+        # model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.latent_dim * 2))
+        # model.add(Reshape((7, 7, 128)))
+        # model.add(UpSampling2D())
+        # model.add(Conv2D(128, kernel_size=4, padding="same"))
+        # model.add(BatchNormalization(momentum=0.8))
+        # model.add(Activation("relu"))
+        # model.add(UpSampling2D())
 
-        if image_size >= 64:
-            model.add(Conv2D(128, kernel_size=4, padding="same"))
-            model.add(BatchNormalization(momentum=0.8))
-            model.add(Activation("relu"))
-            model.add(UpSampling2D())
-        if image_size >= 112:
-            model.add(Conv2D(128, kernel_size=4, padding="same"))
-            model.add(BatchNormalization(momentum=0.8))
-            model.add(Activation("relu"))
-            model.add(UpSampling2D())
-        if image_size >= 224:
-            model.add(Conv2D(64, kernel_size=4, padding="same"))
-            model.add(BatchNormalization(momentum=0.8))
-            model.add(Activation("relu"))
-            model.add(UpSampling2D())
+        # if image_size >= 64:
+        #     model.add(Conv2D(128, kernel_size=4, padding="same"))
+        #     model.add(BatchNormalization(momentum=0.8))
+        #     model.add(Activation("relu"))
+        #     model.add(UpSampling2D())
+        # if image_size >= 112:
+        #     model.add(Conv2D(128, kernel_size=4, padding="same"))
+        #     model.add(BatchNormalization(momentum=0.8))
+        #     model.add(Activation("relu"))
+        #     model.add(UpSampling2D())
+        # if image_size >= 224:
+        #     model.add(Conv2D(64, kernel_size=4, padding="same"))
+        #     model.add(BatchNormalization(momentum=0.8))
+        #     model.add(Activation("relu"))
+        #     model.add(UpSampling2D())
 
-        model.add(Conv2D(64, kernel_size=4, padding="same"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Activation("relu"))
+        # model.add(Conv2D(64, kernel_size=4, padding="same"))
+        # model.add(BatchNormalization(momentum=0.8))
+        # model.add(Activation("relu"))
         
-        model.add(Conv2D(self.channels, kernel_size=4, padding="same"))
-        model.add(Activation("tanh"))
+        # model.add(Conv2D(self.channels, kernel_size=4, padding="same"))
+        # model.add(Activation("tanh"))
 
         #model.summary()
 
         noise = Input(shape=(self.latent_dim * 2,))
-        img = model(noise)
+        refimg = Input(shape=self.img_shape)
 
-        return Model(noise, img)
+        conv1 = Conv2D(16, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(refimg)
+        conv1 = Conv2D(16, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv1)
+        pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
+        conv2 = Conv2D(32, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool1)
+        conv2 = Conv2D(32, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv2)
+        pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
+        conv3 = Conv2D(32, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool2)
+        conv3 = Conv2D(32, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv3)
+        pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+        conv4 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool3)
+        conv4 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv4)
+        drop4 = Dropout(0.5)(conv4)
+        pool4 = MaxPooling2D(pool_size=(2, 2))(drop4)
+
+        conv5 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool4)
+        conv5 = Conv2D(8, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv5)
+        drop5 = Dropout(0.5)(conv5)
+
+        middle = Reshape(target_shape=(14 * 14 * 8,))(drop5)
+        middle = Dense(units=self.latent_dim, activation='relu')(middle)
+        middle = concatenate([middle, noise], axis=-1)
+        middle = Dense(units = 8 * 14 * 14, activation='relu')(middle)
+        middle = Reshape(target_shape=(14, 14, 8,))(middle)
+
+        up6 = Conv2D(64, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(middle))
+        merge6 = concatenate([drop4,up6], axis = 3)
+        conv6 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge6)
+        conv6 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv6)
+
+        up7 = Conv2D(64, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(conv6))
+        merge7 = concatenate([conv3,up7], axis = 3)
+        conv7 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge7)
+        conv7 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv7)
+
+        up8 = Conv2D(32, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(conv7))
+        merge8 = concatenate([conv2,up8], axis = 3)
+        conv8 = Conv2D(32, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge8)
+        conv8 = Conv2D(32, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv8)
+
+        up9 = Conv2D(16, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(conv8))
+        merge9 = concatenate([conv1,up9], axis = 3)
+        conv9 = Conv2D(16, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge9)
+        conv9 = Conv2D(16, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
+        conv9 = Conv2D(2, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
+        conv10 = Conv2D(1, 1, activation = 'tanh')(conv9)
+
+        model = Model(input = [noise, refimg], output = conv10)
+
+        model.summary()
+
+        return model
+
 
     def build_critic(self, image_size):
 
