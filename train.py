@@ -696,7 +696,7 @@ if __name__ == "__main__":
         help='predict-terms')
     argparser.add_argument(
         '--batch-size',
-        default=8,
+        default=4,
         type=int,
         help='batch_size')
     argparser.add_argument(
@@ -711,7 +711,7 @@ if __name__ == "__main__":
         help='code size')
     argparser.add_argument(
         '--frame-stack',
-        default=2,
+        default=10,
         type=int,
         help='frame stack')
     argparser.add_argument(
