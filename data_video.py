@@ -30,7 +30,7 @@ class VideoDataGenerator(object):
                         images = []
                         c = 0
                         frames = []
-                        for name in sorted(files)[:30]:
+                        for name in sorted(files):
                             # print('Reading from ' + name)
                             image = scipy.ndimage.imread(os.path.join('./data/', dataset, subset, dir_name, name))
                             if dataset == 'walking':
