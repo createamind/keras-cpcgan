@@ -36,7 +36,8 @@ class VideoDataGenerator(object):
         for _, dirs, files in os.walk(os.path.join('./data/', dataset, subset)):
             for dir_name in dirs:
 
-                if dataset == 'vkitty':
+                if dataset == 'vkitty'  :
+                  if dir_name != '0001' :
                     images = []
                     for _, dirs2, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
                         for dir_name2 in dirs2:
