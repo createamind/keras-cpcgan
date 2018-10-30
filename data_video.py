@@ -70,6 +70,7 @@ class VideoDataGenerator(object):
         x, y, z = [], [], []
         for b in range(self.batch_size):
             random_video = random.randint(0, len(self.videos) - 1)
+
             random_pos = random.randint(self.terms, len(self.videos[random_video]) - self.predict_terms)
             term_images = self.videos[random_video][random_pos - self.terms: random_pos]
             true_images = self.videos[random_video][random_pos: random_pos + self.predict_terms]
@@ -84,3 +85,12 @@ class VideoDataGenerator(object):
                 z.append(true_images)
 
         return [np.array(x), np.array(y)], sentence_labels
+
+
+if __name__ == "__main__":
+
+    # Test SortedNumberGenerator
+    ag = VideoDataGenerator(batch_size=8, subset='train', terms=4, positive_samples=4, predict_terms=4, image_size=64, color=False, rescale=False, dataset='baby', frame_stack = 8)
+    for (x, y), labels in ag:
+        VideoDataGenerator.next()
+        break
