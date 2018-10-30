@@ -29,9 +29,34 @@ class VideoDataGenerator(object):
         print(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
         print(dataset,subset)
 
+
+
+
+
         for _, dirs, files in os.walk(os.path.join('./data/', dataset, subset)):
             for dir_name in dirs:
-                if True:
+
+                if dataset == 'vkitty':
+                    images = []
+                    for _, dirs2, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
+                        for dir_name2 in dirs2:
+                            for _, _, files in os.walk(os.path.join('./data/', dataset, subset, dir_name,dir_name2)):
+                                images = []
+                                c = 0
+                                frames = []
+                                for name in sorted(files):
+                                    # print('Reading from ' + name)
+                                    image = scipy.ndimage.imread(
+                                        os.path.join('./data/', dataset, subset, dir_name,dir_name2, name))
+                                    image = (scipy.misc.imresize(image, [414, 125]).astype(float) - 127) / 128.0
+                                    c = (c + 1) % frame_stack
+                                    frames.append(image[:, :, :1])
+                                    if c == 0:
+                                        images.append(copy.deepcopy(frames))
+                                        frames = []
+                            self.videos.append(copy.deepcopy(images))
+
+                else:
                     images = []
                     for _, _, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
                         images = []
@@ -42,8 +67,6 @@ class VideoDataGenerator(object):
                             image = scipy.ndimage.imread(os.path.join('./data/', dataset, subset, dir_name, name))
                             if dataset == 'walking':
                                 image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
-                            elif dataset == 'vkitty':
-                                image = (scipy.misc.imresize(image, [414, 125]).astype(float) - 127) / 128.0
                             else:
                                 image = (scipy.misc.imresize(image, [224, 224]).astype(float) - 127) / 128.0
                             c = (c + 1) % frame_stack
@@ -104,7 +127,7 @@ class VideoDataGenerator(object):
 if __name__ == "__main__":
 
     # Test SortedNumberGenerator
-    ag = VideoDataGenerator(batch_size=8, subset='train', terms=4, positive_samples=4, predict_terms=4, image_size=64, color=False, rescale=False, dataset='baby', frame_stack = 8)
+    ag = VideoDataGenerator(batch_size=8, subset='train', terms=4, positive_samples=4, predict_terms=4, image_size=64, color=False, rescale=False, dataset='vkitty', frame_stack = 8)
     for (x, y), labels in ag:
         VideoDataGenerator.next()
         break
