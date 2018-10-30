@@ -550,6 +550,8 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
         raise NotImplementedError
 
 
+    args.name=args.name+'__'+datetime.datetime.now().strftime('%y-%m-%d_%H-%M-%S')
+
     channel = 3 if color else 1
     model, pc, encoder = network_cpc(image_shape=(frame_stack, image_size, image_size, channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
 
@@ -696,7 +698,7 @@ if __name__ == "__main__":
         help='predict-terms')
     argparser.add_argument(
         '--batch-size',
-        default=4,
+        default=1,
         type=int,
         help='batch_size')
     argparser.add_argument(
@@ -711,7 +713,7 @@ if __name__ == "__main__":
         help='code size')
     argparser.add_argument(
         '--frame-stack',
-        default=10,
+        default=8,
         type=int,
         help='frame stack')
     argparser.add_argument(
@@ -736,10 +738,10 @@ if __name__ == "__main__":
 
     args.gan_weight = 1.0
     args.cpc_weight = 100.0
-    args.predict_terms = 4
+    #args.predict_terms = 1
     args.code_size = 64
     args.color = False
-    args.terms = 4
+    #args.terms = 1
     # args.load_name = "models"
 
     # args.dataset = "ucf" # 
