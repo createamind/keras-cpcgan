@@ -73,8 +73,8 @@ def time_distributed(model, inputs, per_inputs=None):
 
 class WGANGP():
     def __init__(self, args, pc, encoder, cpc_sigma):
-        self.img_rows = args.image_size
-        self.img_cols = args.image_size
+        self.img_rows = args.image_size[0]
+        self.img_cols = args.image_size[1]
         self.channels = 3 if args.color else 1
         self.img_shape = (args.frame_stack, self.img_rows, self.img_cols, self.channels)
         self.latent_dim = args.code_size
@@ -400,6 +400,7 @@ def network_encoder(x, code_size, image_size):
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
 
+
     if image_size >= 64:
         x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
         x = keras.layers.BatchNormalization()(x)
@@ -519,7 +520,15 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
 
 def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, color=False, dataset='ucf', frame_stack=2):
 
-    if dataset == 'ucf' or dataset == 'walking' or dataset == 'baby':
+
+    args.name=args.name+'__'+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+
+    channel = 3 if color else 1
+    model, pc, encoder = network_cpc(image_shape=(frame_stack, image_size[0], image_size[1], channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
+
+
+
+    if dataset == 'ucf' or dataset == 'walking' or dataset == 'baby' or dataset == 'vkitty':
         # Prepare data
         train_data = VideoDataGenerator(batch_size=batch_size, subset='train', terms=terms,
                                         positive_samples=batch_size // 2, predict_terms=predict_terms,
@@ -550,10 +559,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
         raise NotImplementedError
 
 
-    args.name=args.name+'__'+datetime.datetime.now().strftime('%y-%m-%d_%H-%M-%S')
 
-    channel = 3 if color else 1
-    model, pc, encoder = network_cpc(image_shape=(frame_stack, image_size, image_size, channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
 
     if len(args.load_name) > 0:
         pc = keras.models.load_model(join(output_dir, 'pc_' + args.load_name + '.h5'))#,custom_objects={'CPCLayer': CPCLayer})
@@ -683,7 +689,7 @@ if __name__ == "__main__":
         help='ucf[default], walking, mnist, generated')
     argparser.add_argument(
         '-e', '--cpc-epochs',
-        default=1,
+        default=100,
         type=int,
         help='cpc epochs')
     argparser.add_argument(
@@ -693,7 +699,7 @@ if __name__ == "__main__":
         help='gan epochs')
     argparser.add_argument(
         '--predict-terms',
-        default=4,
+        default=3,
         type=int,
         help='predict-terms')
     argparser.add_argument(
@@ -703,7 +709,7 @@ if __name__ == "__main__":
         help='batch_size')
     argparser.add_argument(
         '--terms',
-        default=4,
+        default=3,
         type=int,
         help='terms')
     argparser.add_argument(
@@ -713,7 +719,7 @@ if __name__ == "__main__":
         help='code size')
     argparser.add_argument(
         '--frame-stack',
-        default=8,
+        default=4,
         type=int,
         help='frame stack')
     argparser.add_argument(
@@ -753,6 +759,8 @@ if __name__ == "__main__":
         args.image_size = 224
     elif args.dataset == 'walking':
         args.image_size = 112
+    elif args.dataset == 'vkitty':
+        args.image_size = [414,125]
     else:
         args.image_size = 28
 

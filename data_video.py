@@ -4,6 +4,9 @@ import os
 import random
 import numpy as np
 import copy
+import datetime
+
+
 class VideoDataGenerator(object):
 
     ''' Data generator providing lists of sorted numbers '''
@@ -22,6 +25,9 @@ class VideoDataGenerator(object):
 
         self.videos = []
 
+        print('load date start')
+        print(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+
         for _, dirs, files in os.walk(os.path.join('./data/', dataset, subset)):
             for dir_name in dirs:
                 if True:
@@ -35,6 +41,8 @@ class VideoDataGenerator(object):
                             image = scipy.ndimage.imread(os.path.join('./data/', dataset, subset, dir_name, name))
                             if dataset == 'walking':
                                 image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
+                            elif dataset == 'vkitty':
+                                image = (scipy.misc.imresize(image, [414, 125]).astype(float) - 127) / 128.0
                             else:
                                 image = (scipy.misc.imresize(image, [224, 224]).astype(float) - 127) / 128.0
                             c = (c + 1) % frame_stack
@@ -44,6 +52,11 @@ class VideoDataGenerator(object):
                                 frames = []
                     self.videos.append(copy.deepcopy(images))
             break
+
+        print(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+        print('load date ok')
+
+
         self.n_samples = 3000 if subset == 'train' else 600
         self.n_batches = self.n_samples // batch_size
 
