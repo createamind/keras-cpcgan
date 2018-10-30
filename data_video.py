@@ -27,6 +27,7 @@ class VideoDataGenerator(object):
 
         print('load date start')
         print(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+        print(dataset,subset)
 
         for _, dirs, files in os.walk(os.path.join('./data/', dataset, subset)):
             for dir_name in dirs:
@@ -54,7 +55,7 @@ class VideoDataGenerator(object):
             break
 
         print(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
-        print('load date ok')
+        print('load date over . ')
 
 
         self.n_samples = 3000 if subset == 'train' else 600

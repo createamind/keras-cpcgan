@@ -756,14 +756,15 @@ if __name__ == "__main__":
     # args.dataset = "walking" # 
 
     if args.dataset == 'ucf' or args.dataset == 'baby':
-        args.image_size = 224
+        args.image_size = [224,244]
     elif args.dataset == 'walking':
-        args.image_size = 112
+        args.image_size = [112,112]
     elif args.dataset == 'vkitty':
         args.image_size = [414,125]
     else:
-        args.image_size = 28
+        args.image_size = [28,28]
 
+    print(args)
 
     train_model(
         args,
