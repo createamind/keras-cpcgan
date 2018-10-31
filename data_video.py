@@ -37,7 +37,9 @@ class VideoDataGenerator(object):
             for dir_name in dirs:
 
                 if dataset == 'vkitty'  :
-                  if dir_name != '0001' :
+                  if subset == 'train':
+                   if dir_name != '0001' :
+
                     images = []
                     for _, dirs2, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
                         for dir_name2 in dirs2:
@@ -56,6 +58,25 @@ class VideoDataGenerator(object):
                                         images.append(copy.deepcopy(frames))
                                         frames = []
                             self.videos.append(copy.deepcopy(images))
+
+                  else:
+                      images = []
+                      for _, _, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
+                          images = []
+                          c = 0
+                          frames = []
+                          for name in sorted(files):
+                              # print('Reading from ' + name)
+                              image = scipy.ndimage.imread(os.path.join('./data/', dataset, subset, dir_name, name))
+
+                              image = (scipy.misc.imresize(image, [414, 125]).astype(float) - 127) / 128.0
+
+                              c = (c + 1) % frame_stack
+                              frames.append(image[:, :, :1])
+                              if c == 0:
+                                  images.append(copy.deepcopy(frames))
+                                  frames = []
+                      self.videos.append(copy.deepcopy(images))
 
                 else:
                     images = []
@@ -80,7 +101,8 @@ class VideoDataGenerator(object):
 
         print(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
         print('load date over . ')
-
+        print('len videos')
+        print(len(self.videos))
 
         self.n_samples = 3000 if subset == 'train' else 600
         self.n_batches = self.n_samples // batch_size
@@ -102,6 +124,11 @@ class VideoDataGenerator(object):
     #     return self.batches[self.batch_index]
 
     def next(self):
+
+        # print('len videos')
+        # print(len(self.videos))
+
+
         sentence_labels = np.ones((self.batch_size, 1)).astype('int32')
         for b in range(self.batch_size):
             sentence_labels[b] = 1 if random.randint(1,5) == 1 else 0

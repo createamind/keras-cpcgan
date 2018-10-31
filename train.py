@@ -464,10 +464,14 @@ class CPCLayer(keras.layers.Layer):
         # Compute dot product among vectors
         preds, y_encoded = inputs
         dot_product = K.mean(y_encoded * preds, axis=-1)
-        dot_product = K.mean(dot_product, axis=-1, keepdims=True)  # average along the temporal dimension
+
 
         # Keras loss functions take probabilities
-        dot_product_probs = K.sigmoid(dot_product)
+        dot_product = K.sigmoid(dot_product)
+        dot_product_probs = K.mean(dot_product, axis=-1, keepdims=True)  # average along the temporal dimension
+
+
+
 
         return dot_product_probs
 
@@ -557,7 +561,6 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
                                                 image_size=image_size, color=color, rescale=True)
     else:
         raise NotImplementedError
-
 
 
 
