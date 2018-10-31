@@ -35,7 +35,7 @@ class VideoDataGenerator(object):
 
         for _, dirs, files in os.walk(os.path.join('./data/', dataset, subset)):
             for dir_name in dirs:
-
+                print(dir_name)
                 if dataset == 'vkitty'  :
                   if subset == 'train':
                    if dir_name != '0001' :
@@ -53,7 +53,8 @@ class VideoDataGenerator(object):
                                         os.path.join('./data/', dataset, subset, dir_name,dir_name2, name))
                                     image = (scipy.misc.imresize(image, [414, 125]).astype(float) - 127) / 128.0
                                     c = (c + 1) % frame_stack
-                                    frames.append(image[:, :, :1])
+                                    #frames.append(image[:, :, :1])
+                                    frames.append(image)
                                     if c == 0:
                                         images.append(copy.deepcopy(frames))
                                         frames = []
@@ -72,7 +73,7 @@ class VideoDataGenerator(object):
                               image = (scipy.misc.imresize(image, [414, 125]).astype(float) - 127) / 128.0
 
                               c = (c + 1) % frame_stack
-                              frames.append(image[:, :, :1])
+                              frames.append(image)
                               if c == 0:
                                   images.append(copy.deepcopy(frames))
                                   frames = []
@@ -92,7 +93,8 @@ class VideoDataGenerator(object):
                             else:
                                 image = (scipy.misc.imresize(image, [224, 224]).astype(float) - 127) / 128.0
                             c = (c + 1) % frame_stack
-                            frames.append(image[:, :, :1])  
+                            #frames.append(image[:, :, :1])
+                            frames.append(image)
                             if c == 0:
                                 images.append(copy.deepcopy(frames))
                                 frames = []
@@ -104,7 +106,7 @@ class VideoDataGenerator(object):
         print('len videos')
         print(len(self.videos))
 
-        self.n_samples = 3000 if subset == 'train' else 600
+        self.n_samples = 3000 if subset == 'train' else 200
         self.n_batches = self.n_samples // batch_size
 
         # self.batches = [self.get_data() for i in range(self.n_batches)]
@@ -143,11 +145,11 @@ class VideoDataGenerator(object):
             if sentence_labels[b] == 0:
                 x.append(term_images)
                 y.append(false_images)
-                z.append(true_images)
+                #z.append(true_images)
             else:
                 x.append(term_images)
                 y.append(true_images)
-                z.append(true_images)
+                #z.append(true_images)
 
         return [np.array(x), np.array(y)], sentence_labels
 

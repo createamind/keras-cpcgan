@@ -530,6 +530,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
     channel = 3 if color else 1
     model, pc, encoder = network_cpc(image_shape=(frame_stack, image_size[0], image_size[1], channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
 
+    print(args)
 
 
     if dataset == 'ucf' or dataset == 'walking' or dataset == 'baby' or dataset == 'vkitty':
@@ -568,6 +569,8 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
         pc = keras.models.load_model(join(output_dir, 'pc_' + args.load_name + '.h5'))#,custom_objects={'CPCLayer': CPCLayer})
         encoder = keras.models.load_model(join(output_dir, 'encoder_' + args.load_name + '.h5'))
         model = keras.models.load_model(join(output_dir, 'cpc_' + args.load_name + '.h5'),custom_objects={'CPCLayer': CPCLayer})
+
+    print(args)
 
     if True :
         print('Start Training CPC')
@@ -748,8 +751,8 @@ if __name__ == "__main__":
     args.gan_weight = 1.0
     args.cpc_weight = 100.0
     #args.predict_terms = 1
-    args.code_size = 64
-    args.color = False
+    args.code_size = 128
+    args.color = True
     #args.terms = 1
     # args.load_name = "models"
 
