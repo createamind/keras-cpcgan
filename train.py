@@ -193,86 +193,13 @@ class WGANGP():
     def wasserstein_loss(self, y_true, y_pred):
         return K.mean(y_true * y_pred)
 
-    # def build_generator(self, image_size):
 
-    #     model = Sequential()
-
-    #     model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.latent_dim * 2))
-    #     model.add(Reshape((7, 7, 128)))
-    #     model.add(UpSampling2D())
-    #     model.add(Conv3D(128, kernel_size=4, padding="same"))
-    #     model.add(BatchNormalization(momentum=0.8))
-    #     model.add(Activation("relu"))
-    #     model.add(UpSampling2D())
-
-    #     if image_size >= 64:
-    #         model.add(Conv3D(128, kernel_size=4, padding="same"))
-    #         model.add(BatchNormalization(momentum=0.8))
-    #         model.add(Activation("relu"))
-    #         model.add(UpSampling2D())
-    #     if image_size >= 112:
-    #         model.add(Conv2D(128, kernel_size=4, padding="same"))
-    #         model.add(BatchNormalization(momentum=0.8))
-    #         model.add(Activation("relu"))
-    #         model.add(UpSampling2D())
-    #     if image_size >= 224:
-    #         model.add(Conv2D(64, kernel_size=4, padding="same"))
-    #         model.add(BatchNormalization(momentum=0.8))
-    #         model.add(Activation("relu"))
-    #         model.add(UpSampling2D())
-
-    #     model.add(Conv2D(64, kernel_size=4, padding="same"))
-    #     model.add(BatchNormalization(momentum=0.8))
-    #     model.add(Activation("relu"))
-        
-    #     model.add(Conv2D(self.channels, kernel_size=4, padding="same"))
-    #     model.add(Activation("tanh"))
-
-    #     #model.summary()
-
-    #     noise = Input(shape=(self.latent_dim * 2,))
-    #     img = model(noise)
-
-    #     return Model(noise, img)
  
 
 
     def build_generator(self, image_size, args):
 
-        # model = Sequential()
 
-        # model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.latent_dim * 2))
-        # model.add(Reshape((7, 7, 128)))
-        # model.add(UpSampling2D())
-        # model.add(Conv2D(128, kernel_size=4, padding="same"))
-        # model.add(BatchNormalization(momentum=0.8))
-        # model.add(Activation("relu"))
-        # model.add(UpSampling2D())
-
-        # if image_size >= 64:
-        #     model.add(Conv2D(128, kernel_size=4, padding="same"))
-        #     model.add(BatchNormalization(momentum=0.8))
-        #     model.add(Activation("relu"))
-        #     model.add(UpSampling2D())
-        # if image_size >= 112:
-        #     model.add(Conv2D(128, kernel_size=4, padding="same"))
-        #     model.add(BatchNormalization(momentum=0.8))
-        #     model.add(Activation("relu"))
-        #     model.add(UpSampling2D())
-        # if image_size >= 224:
-        #     model.add(Conv2D(64, kernel_size=4, padding="same"))
-        #     model.add(BatchNormalization(momentum=0.8))
-        #     model.add(Activation("relu"))
-        #     model.add(UpSampling2D())
-
-        # model.add(Conv2D(64, kernel_size=4, padding="same"))
-        # model.add(BatchNormalization(momentum=0.8))
-        # model.add(Activation("relu"))
-        
-        # model.add(Conv2D(self.channels, kernel_size=4, padding="same"))
-        # model.add(Activation("tanh"))
-
-        #model.summary()
 
         noise = Input(shape=(self.latent_dim * 2,))
         refimg = Input(shape=self.img_shape)
@@ -390,24 +317,24 @@ def network_encoder(x, code_size, image_size):
     x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
+    x = keras.layers.Conv3D(filters=128, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
+    x = keras.layers.Conv3D(filters=256, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
+    x = keras.layers.Conv3D(filters=512, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
 
 
     if image_size >= 64:
-        x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
+        x = keras.layers.Conv3D(filters=256, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.LeakyReLU()(x)
 
     if image_size >= 112:
-        x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
+        x = keras.layers.Conv3D(filters=128, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.LeakyReLU()(x)
 
@@ -417,7 +344,7 @@ def network_encoder(x, code_size, image_size):
         x = keras.layers.LeakyReLU()(x)
 
     x = keras.layers.Flatten()(x)
-    x = keras.layers.Dense(units=256, activation='linear')(x)
+    x = keras.layers.Dense(units=1024, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
     x = keras.layers.Dense(units=code_size, activation='linear', name='encoder_embedding')(x)
@@ -431,7 +358,7 @@ def network_autoregressive(x):
 
     # x = keras.layers.GRU(units=256, return_sequences=True)(x)
     # x = keras.layers.BatchNormalization()(x)
-    x = keras.layers.GRU(units=256, return_sequences=False, name='ar_context')(x)
+    x = keras.layers.GRU(units=1024, return_sequences=False, name='ar_context')(x)
 
     return x
 
@@ -648,34 +575,37 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
         print("\nepoch: ", epoch, "\nd_loss: ", d_loss, "\ng_loss: ", g_loss)
 
-        rows = 5
-        init_img = x_img[0:rows, ...]
-        init_img = (init_img + 1)*0.5
-        gen_img = gen_model.predict([x_img[0:rows,...],noise[0:rows,...]])
-        gen_img = (gen_img + 1)*0.5
+        # rows = 5
+        # init_img = x_img[0:rows, ...]
+        # init_img = (init_img + 1)*0.5
+        # gen_img = gen_model.predict([x_img[0:rows,...],noise[0:rows,...]])
+        # gen_img = (gen_img + 1)*0.5
+        #
+        # init_img = init_img[:,0]
+        # gen_img = gen_img[:,0]
+        #
+        # imgs = np.concatenate((init_img,gen_img),axis=1)
+        #
+        # if imgs.shape[-1] == 1:
+        #     imgs = np.concatenate([imgs, imgs, imgs], axis=-1)
+        #
+        # cols = args.terms + args.predict_terms
+        # fig, axs = plt.subplots(rows,cols)
+        # for i in range(rows):
+        #     for j in range(cols):
+        #         axs[i,j].imshow(imgs[i,j] )
+        #         axs[i,j].axis('off')
+        #
+        # if not os.path.exists('images/'):
+        #     os.makedirs('images/')
+        # if not os.path.exists(os.path.join('images', args.name)):
+        #     os.makedirs(os.path.join('images', args.name))
+        # fig.savefig(os.path.join('images', args.name, 'epoch%d.png' % epoch), dpi=1500)
+        # gan.generator_model.save(join(output_dir, 'generator_' + args.name + '.h5'))
+        # gan.critic_model.save(join(output_dir, 'dis_' + args.name + '.h5'))
 
-        init_img = init_img[:,0]
-        gen_img = gen_img[:,0]
+    print(args)
 
-        imgs = np.concatenate((init_img,gen_img),axis=1)
-
-        if imgs.shape[-1] == 1:
-            imgs = np.concatenate([imgs, imgs, imgs], axis=-1)
-
-        cols = args.terms + args.predict_terms
-        fig, axs = plt.subplots(rows,cols)
-        for i in range(rows):
-            for j in range(cols):
-                axs[i,j].imshow(imgs[i,j] )
-                axs[i,j].axis('off')
-
-        if not os.path.exists('images/'):
-            os.makedirs('images/')
-        if not os.path.exists(os.path.join('images', args.name)):
-            os.makedirs(os.path.join('images', args.name))
-        fig.savefig(os.path.join('images', args.name, 'epoch%d.png' % epoch), dpi=1500)
-        gan.generator_model.save(join(output_dir, 'generator_' + args.name + '.h5'))
-        gan.critic_model.save(join(output_dir, 'dis_' + args.name + '.h5'))
 
 if __name__ == "__main__":
 
@@ -692,10 +622,10 @@ if __name__ == "__main__":
     argparser.add_argument(
         '--dataset',
         default='ucf',
-        help='ucf[default], walking, mnist, generated')
+        help='ucf[default], walking, mnist, generated,vkitty')
     argparser.add_argument(
         '-e', '--cpc-epochs',
-        default=100,
+        default=50,
         type=int,
         help='cpc epochs')
     argparser.add_argument(
@@ -705,7 +635,7 @@ if __name__ == "__main__":
         help='gan epochs')
     argparser.add_argument(
         '--predict-terms',
-        default=3,
+        default=2,
         type=int,
         help='predict-terms')
     argparser.add_argument(
@@ -720,12 +650,12 @@ if __name__ == "__main__":
         help='terms')
     argparser.add_argument(
         '--code-size',
-        default=64,
+        default=128,
         type=int,
         help='code size')
     argparser.add_argument(
         '--frame-stack',
-        default=4,
+        default=6,
         type=int,
         help='frame stack')
     argparser.add_argument(
@@ -735,7 +665,7 @@ if __name__ == "__main__":
         help='Learning rate')
     argparser.add_argument(
         '--cpc-weight',
-        default=10.0,
+        default=100.0,
         type=float,
         help='Learning rate')
     argparser.add_argument(
@@ -750,16 +680,19 @@ if __name__ == "__main__":
 
     args.gan_weight = 1.0
     args.cpc_weight = 100.0
-    #args.predict_terms = 1
+    args.predict_terms = 2
     args.code_size = 128
     args.color = True
-    #args.terms = 1
+    args.terms = 2
+    args.cpc_epochs = 50
+    args.frame_stack = 6
     # args.load_name = "models"
 
     # args.dataset = "ucf" # 
     # args.dataset = "mnist" # 
     # args.dataset = "generated" # 
-    # args.dataset = "walking" # 
+    args.dataset = "vkitty" #
+
 
     if args.dataset == 'ucf' or args.dataset == 'baby':
         args.image_size = [224,244]
