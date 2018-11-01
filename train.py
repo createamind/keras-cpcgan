@@ -358,7 +358,13 @@ def network_autoregressive(x):
 
     # x = keras.layers.GRU(units=256, return_sequences=True)(x)
     # x = keras.layers.BatchNormalization()(x)
-    x = keras.layers.GRU(units=1024, return_sequences=False, name='ar_context')(x)
+
+    x = keras.layers.GRU(units=256, return_sequences=True)(x)
+    x = keras.layers.GRU(units=256, return_sequences=True)(x)
+    # x = keras.layers.GRU(units=256, return_sequences=True)(x)
+    # x = keras.layers.GRU(units=256, return_sequences=True)(x)
+    x = keras.layers.GRU(units=256, return_sequences=True)(x)
+    x = keras.layers.GRU(units=256, return_sequences=False, name='ar_context')(x)
 
     return x
 
@@ -684,7 +690,7 @@ if __name__ == "__main__":
     args.code_size = 128
     args.color = True
     args.terms = 2
-    args.cpc_epochs = 50
+    args.cpc_epochs = 30
     args.frame_stack = 6
     # args.load_name = "models"
 
