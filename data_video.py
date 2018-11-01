@@ -35,10 +35,11 @@ class VideoDataGenerator(object):
 
         for _, dirs, files in os.walk(os.path.join('./data/', dataset, subset)):
             for dir_name in dirs:
-                print(dir_name)
+
                 if dataset == 'vkitty'  :
                   if subset == 'train':
                    if dir_name != '0001' :
+                    print(dir_name)
 
                     images = []
                     for _, dirs2, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
@@ -61,6 +62,7 @@ class VideoDataGenerator(object):
                             self.videos.append(copy.deepcopy(images))
 
                   else:
+                      print(dir_name)
                       images = []
                       for _, _, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
                           images = []
@@ -80,6 +82,7 @@ class VideoDataGenerator(object):
                       self.videos.append(copy.deepcopy(images))
 
                 else:
+                    print(dir_name)
                     images = []
                     for _, _, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
                         images = []
