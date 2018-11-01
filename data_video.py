@@ -54,8 +54,10 @@ class VideoDataGenerator(object):
                                         os.path.join('./data/', dataset, subset, dir_name,dir_name2, name))
                                     image = (scipy.misc.imresize(image, [414, 125]).astype(float) - 127) / 128.0
                                     c = (c + 1) % frame_stack
-                                    #frames.append(image[:, :, :1])
-                                    frames.append(image)
+                                    if self.color:
+                                        frames.append(image)
+                                    else:
+                                        frames.append(image[:, :, :1])
                                     if c == 0:
                                         images.append(copy.deepcopy(frames))
                                         frames = []
@@ -75,10 +77,14 @@ class VideoDataGenerator(object):
                               image = (scipy.misc.imresize(image, [414, 125]).astype(float) - 127) / 128.0
 
                               c = (c + 1) % frame_stack
-                              frames.append(image)
+                              if self.color:
+                                  frames.append(image)
+                              else:
+                                  frames.append(image[:, :, :1])
                               if c == 0:
                                   images.append(copy.deepcopy(frames))
                                   frames = []
+                          print
                       self.videos.append(copy.deepcopy(images))
 
                 else:
@@ -96,8 +102,11 @@ class VideoDataGenerator(object):
                             else:
                                 image = (scipy.misc.imresize(image, [224, 224]).astype(float) - 127) / 128.0
                             c = (c + 1) % frame_stack
-                            #frames.append(image[:, :, :1])
-                            frames.append(image)
+                            if self.color :
+                                frames.append(image)
+                            else:
+                                frames.append(image[:, :, :1])
+
                             if c == 0:
                                 images.append(copy.deepcopy(frames))
                                 frames = []
@@ -140,11 +149,20 @@ class VideoDataGenerator(object):
         x, y, z = [], [], []
         for b in range(self.batch_size):
             random_video = random.randint(0, len(self.videos) - 1)
-
             random_pos = random.randint(self.terms, len(self.videos[random_video]) - self.predict_terms)
             term_images = self.videos[random_video][random_pos - self.terms: random_pos]
             true_images = self.videos[random_video][random_pos: random_pos + self.predict_terms]
+
+            print('true random_video, random_pos')
+            print(random_video, random_pos)
+
+            random_video = random.randint(0, len(self.videos) - 1)
+            random_pos = random.randint(self.terms, len(self.videos[random_video]) - self.predict_terms)
+
             false_images = [self.videos[random_video][random.randint(0, len(self.videos[random_video]) - 1)] for i in range(self.predict_terms)]
+            print("false random_video, random_pos")
+            print(random_video,random_pos)
+
             if sentence_labels[b] == 0:
                 x.append(term_images)
                 y.append(false_images)

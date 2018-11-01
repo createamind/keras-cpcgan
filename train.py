@@ -701,7 +701,7 @@ if __name__ == "__main__":
 
 
     if args.dataset == 'ucf' or args.dataset == 'baby':
-        args.image_size = [224,244]
+        args.image_size = [224,224]
     elif args.dataset == 'walking':
         args.image_size = [112,112]
     elif args.dataset == 'vkitty':
