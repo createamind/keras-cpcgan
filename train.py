@@ -1,6 +1,7 @@
 
 import datetime
 import argparse
+import os
 import tensorflow as tf
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -464,6 +465,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
     model, pc, encoder = network_cpc(image_shape=(frame_stack, image_size[0], image_size[1], channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
 
     print(args)
+    os.system('git log -1')
 
 
     if dataset == 'ucf' or dataset == 'walking' or dataset == 'baby' or dataset == 'vkitty':
