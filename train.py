@@ -223,11 +223,17 @@ class WGANGP():
         conv5 = Conv3D(8, (1,3,3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv5)
         drop5 = Dropout(0.5)(conv5)
 
-        middle = Reshape(target_shape=(14 * 14 * 8 * args.frame_stack,))(drop5)
+        # middle = Reshape(target_shape=(14 * 14 * 8 * args.frame_stack,))(drop5)
+        # middle = Dense(units=self.latent_dim, activation='relu')(middle)
+        # middle = concatenate([middle, noise], axis=-1)
+        # middle = Dense(units = 8 * 14 * 14 * args.frame_stack, activation='relu')(middle)
+        # middle = Reshape(target_shape=(args.frame_stack, 14, 14, 8,))(middle)
+
+        middle = Reshape(target_shape=(25 * 8 * 8 * args.frame_stack,))(drop5)
         middle = Dense(units=self.latent_dim, activation='relu')(middle)
         middle = concatenate([middle, noise], axis=-1)
-        middle = Dense(units = 8 * 14 * 14 * args.frame_stack, activation='relu')(middle)
-        middle = Reshape(target_shape=(args.frame_stack, 14, 14, 8,))(middle)
+        middle = Dense(units = 8 * 25 * 8 * args.frame_stack, activation='relu')(middle)
+        middle = Reshape(target_shape=(args.frame_stack, 25, 8, 8,))(middle)
 
         up6 = Conv3D(64, (1,2,2), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling3D(size = (1,2,2))(middle))
         merge6 = concatenate([drop4,up6], axis = -1)
@@ -249,7 +255,7 @@ class WGANGP():
         conv9 = Conv3D(16, (1, 3, 3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge9)
         conv9 = Conv3D(16, (1, 3, 3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
         conv9 = Conv3D(2, (1, 3, 3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
-        conv10 = Conv3D(1, 1, activation = 'tanh')(conv9)
+        conv10 = Conv3D(self.channels, 1, activation = 'tanh')(conv9)
 
         model = Model(input = [noise, refimg], output = conv10)
 
@@ -689,11 +695,11 @@ if __name__ == "__main__":
     args.gan_weight = 1.0
     args.cpc_weight = 100.0
     args.predict_terms = 2
-    args.code_size = 128
-    args.color = True
+    args.code_size = 32
+    args.color = False
     args.terms = 2
     args.cpc_epochs = 30
-    args.frame_stack = 6
+    args.frame_stack = 3
     # args.load_name = "models"
 
     # args.dataset = "ucf" # 
@@ -707,7 +713,7 @@ if __name__ == "__main__":
     elif args.dataset == 'walking':
         args.image_size = [112,112]
     elif args.dataset == 'vkitty':
-        args.image_size = [414,125]
+        args.image_size = [400,128]
     else:
         args.image_size = [28,28]
 
