@@ -118,7 +118,7 @@ class VideoDataGenerator(object):
         print('len videos')
         print(len(self.videos))
 
-        self.n_samples = 3000 if subset == 'train' else 200
+        self.n_samples = 3 if subset == 'train' else 2
         self.n_batches = self.n_samples // batch_size
 
         # self.batches = [self.get_data() for i in range(self.n_batches)]

@@ -35,6 +35,8 @@ import sys, time
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import skvideo.io
+
 
 import os
 if not os.path.exists('images/args.name'):
@@ -585,38 +587,66 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
             sys.stdout.write(
                 '\r Epoch {}: training[{} / {}]'.format(epoch, i, len(train_data)))
 
+            # rows = 2
+            # init_img = x_img[0:rows, ...]
+            # init_img = (init_img + 1)*0.5
+            # gen_img = gen_model.predict([x_img[0:rows,...],noise[0:rows,...]])
+            # gen_img = (gen_img + 1)*0.5
+            #
+            # #init_img = init_img[:,0]
+            # #gen_img = gen_img[:,0]
+            #
+            # imgs = np.concatenate((init_img,gen_img),axis=1)
+            #
+            # if imgs.shape[-1] == 1:
+            #     imgs = np.concatenate([imgs, imgs, imgs], axis=-1)
+            #
+            # cols = args.terms + args.predict_terms
+            # fig, axs = plt.subplots(rows,cols)
+            # for i in range(rows):
+            #     for j in range(cols):
+            #         axs[i,j].imshow(imgs[i,j,0] )
+            #         axs[i,j].axis('off')
+            #
+            # if not os.path.exists('images/'):
+            #     os.makedirs('images/')
+            # if not os.path.exists(os.path.join('images', args.name)):
+            #     os.makedirs(os.path.join('images', args.name))
+            # fig.savefig(os.path.join('images', args.name, 'epoch%d.png' % epoch), dpi=1500)
+            # gan.generator_model.save(join(output_dir, 'generator_' + args.name + '.h5'))
+            # gan.critic_model.save(join(output_dir, 'dis_' + args.name + '.h5'))
+
+
+
+            rows = 2
+            cols = args.terms + args.predict_terms
+
+            init_img = x_img[0:rows, ...]
+            init_img = (init_img + 1)*0.5*255
+            gen_img = gen_model.predict([x_img[0:rows,...],noise[0:rows,...]])
+            gen_img = (gen_img + 1)*0.5*255
+
+
+            imgs = np.concatenate((init_img,gen_img),axis=1)
+
+            if imgs.shape[-1] == 1:
+                imgs = np.concatenate([imgs, imgs, imgs], axis=-1)
+
+            for _ in range(4):
+                imgs = np.concatenate((imgs,imgs),axis=2)
+            if not os.path.exists(os.path.join('images', args.name)):
+                os.makedirs(os.path.join('images', args.name))
+            for i in range(rows):
+                for j in range(cols):
+                    skvideo.io.vwrite(os.path.join('images', args.name, 'epoch%d.mp4' % epoch), imgs[i,j],
+                              inputdict={'-r': '12'},
+                              outputdict={'-r': '12'})
+
         ###################  Validation   ###################
 
         print("\nepoch: ", epoch, "\nd_loss: ", d_loss, "\ng_loss: ", g_loss)
 
-        # rows = 5
-        # init_img = x_img[0:rows, ...]
-        # init_img = (init_img + 1)*0.5
-        # gen_img = gen_model.predict([x_img[0:rows,...],noise[0:rows,...]])
-        # gen_img = (gen_img + 1)*0.5
-        #
-        # init_img = init_img[:,0]
-        # gen_img = gen_img[:,0]
-        #
-        # imgs = np.concatenate((init_img,gen_img),axis=1)
-        #
-        # if imgs.shape[-1] == 1:
-        #     imgs = np.concatenate([imgs, imgs, imgs], axis=-1)
-        #
-        # cols = args.terms + args.predict_terms
-        # fig, axs = plt.subplots(rows,cols)
-        # for i in range(rows):
-        #     for j in range(cols):
-        #         axs[i,j].imshow(imgs[i,j] )
-        #         axs[i,j].axis('off')
-        #
-        # if not os.path.exists('images/'):
-        #     os.makedirs('images/')
-        # if not os.path.exists(os.path.join('images', args.name)):
-        #     os.makedirs(os.path.join('images', args.name))
-        # fig.savefig(os.path.join('images', args.name, 'epoch%d.png' % epoch), dpi=1500)
-        # gan.generator_model.save(join(output_dir, 'generator_' + args.name + '.h5'))
-        # gan.critic_model.save(join(output_dir, 'dis_' + args.name + '.h5'))
+
 
     print(args)
 
@@ -654,7 +684,7 @@ if __name__ == "__main__":
         help='predict-terms')
     argparser.add_argument(
         '--batch-size',
-        default=1,
+        default=2,
         type=int,
         help='batch_size')
     argparser.add_argument(
@@ -694,11 +724,11 @@ if __name__ == "__main__":
 
     args.gan_weight = 1.0
     args.cpc_weight = 100.0
-    args.predict_terms = 2
+    args.predict_terms = 1
     args.code_size = 32
     args.color = False
-    args.terms = 2
-    args.cpc_epochs = 30
+    args.terms = 1
+    args.cpc_epochs = 0
     args.frame_stack = 3
     # args.load_name = "models"
 
