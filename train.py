@@ -235,7 +235,7 @@ class WGANGP():
         middle = Dense(units=self.latent_dim, activation='relu')(middle)
         middle = concatenate([middle, noise], axis=-1)
         middle = Dense(units = 8 * 25 * 8 * args.frame_stack, activation='relu')(middle)
-        middle = Reshape(target_shape=(args.frame_stack, 25, 8, 8,))(middle)
+        middle = Reshape(target_shape=(args.frame_stack, 8, 25, 8,))(middle)
 
         up6 = Conv3D(64, (1,2,2), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling3D(size = (1,2,2))(middle))
         merge6 = concatenate([drop4,up6], axis = -1)
@@ -353,7 +353,7 @@ def network_encoder(x, code_size, image_size):
         x = keras.layers.LeakyReLU()(x)
 
     x = keras.layers.Flatten()(x)
-    x = keras.layers.Dense(units=1024, activation='linear')(x)
+    x = keras.layers.Dense(units=256, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
     x = keras.layers.Dense(units=code_size, activation='linear', name='encoder_embedding')(x)
@@ -368,11 +368,6 @@ def network_autoregressive(x):
     # x = keras.layers.GRU(units=256, return_sequences=True)(x)
     # x = keras.layers.BatchNormalization()(x)
 
-    x = keras.layers.GRU(units=256, return_sequences=True)(x)
-    x = keras.layers.GRU(units=256, return_sequences=True)(x)
-    # x = keras.layers.GRU(units=256, return_sequences=True)(x)
-    # x = keras.layers.GRU(units=256, return_sequences=True)(x)
-    x = keras.layers.GRU(units=256, return_sequences=True)(x)
     x = keras.layers.GRU(units=256, return_sequences=False, name='ar_context')(x)
 
     return x
@@ -618,7 +613,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
 
 
-            rows = 2
+            rows = args.batch_size
             cols = args.terms + args.predict_terms
 
             init_img = x_img[0:rows, ...]
@@ -684,7 +679,7 @@ if __name__ == "__main__":
         help='predict-terms')
     argparser.add_argument(
         '--batch-size',
-        default=2,
+        default=1,
         type=int,
         help='batch_size')
     argparser.add_argument(
@@ -728,7 +723,7 @@ if __name__ == "__main__":
     args.code_size = 32
     args.color = False
     args.terms = 1
-    args.cpc_epochs = 0
+    args.cpc_epochs = 50
     args.frame_stack = 3
     # args.load_name = "models"
 
