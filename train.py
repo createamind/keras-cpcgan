@@ -743,7 +743,7 @@ if __name__ == "__main__":
     elif args.dataset == 'walking':
         args.image_size = [112,112]
     elif args.dataset == 'vkitty':
-        args.image_size = [400,128]
+        args.image_size = [128,400]
     else:
         args.image_size = [28,28]
 
