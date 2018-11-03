@@ -52,7 +52,7 @@ class VideoDataGenerator(object):
                                     # print('Reading from ' + name)
                                     image = scipy.ndimage.imread(
                                         os.path.join('./data/', dataset, subset, dir_name,dir_name2, name))
-                                    image = (scipy.misc.imresize(image, [128,400]).astype(float) - 127) / 128.0
+                                    image = (scipy.misc.imresize(image, [64,200]).astype(float) - 127) / 128.0
                                     c = (c + 1) % frame_stack
                                     if self.color:
                                         frames.append(image)
@@ -74,7 +74,7 @@ class VideoDataGenerator(object):
                               # print('Reading from ' + name)
                               image = scipy.ndimage.imread(os.path.join('./data/', dataset, subset, dir_name, name))
 
-                              image = (scipy.misc.imresize(image, [128,400]).astype(float) - 127) / 128.0
+                              image = (scipy.misc.imresize(image, [64,200]).astype(float) - 127) / 128.0
 
                               c = (c + 1) % frame_stack
                               if self.color:
@@ -118,7 +118,7 @@ class VideoDataGenerator(object):
         print('len videos')
         print(len(self.videos))
 
-        self.n_samples = 3 if subset == 'train' else 2
+        self.n_samples = 3000 if subset == 'train' else 200
         self.n_batches = self.n_samples // batch_size
 
         # self.batches = [self.get_data() for i in range(self.n_batches)]

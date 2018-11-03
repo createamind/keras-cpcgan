@@ -326,24 +326,24 @@ def network_encoder(x, code_size, image_size):
     x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv3D(filters=128, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
+    x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv3D(filters=256, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
+    x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv3D(filters=512, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
+    x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
 
 
     if image_size >= 64:
-        x = keras.layers.Conv3D(filters=256, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
+        x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.LeakyReLU()(x)
 
     if image_size >= 112:
-        x = keras.layers.Conv3D(filters=128, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
+        x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.LeakyReLU()(x)
 
@@ -719,26 +719,25 @@ if __name__ == "__main__":
 
     args.gan_weight = 1.0
     args.cpc_weight = 100.0
-    args.predict_terms = 1
+    args.predict_terms = 3
     args.code_size = 32
     args.color = False
-    args.terms = 1
+    args.terms = 3
     args.cpc_epochs = 50
-    args.frame_stack = 3
+    args.frame_stack = 6
     # args.load_name = "models"
-
     # args.dataset = "ucf" # 
     # args.dataset = "mnist" # 
     # args.dataset = "generated" # 
     args.dataset = "vkitty" #
-
+    args.batch_size=3
 
     if args.dataset == 'ucf' or args.dataset == 'baby':
         args.image_size = [224,224]
     elif args.dataset == 'walking':
         args.image_size = [112,112]
     elif args.dataset == 'vkitty':
-        args.image_size = [128,400]
+        args.image_size = [64,200]
     else:
         args.image_size = [28,28]
 
