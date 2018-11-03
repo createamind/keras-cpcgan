@@ -36,7 +36,7 @@ class VideoDataGenerator(object):
         for _, dirs, files in os.walk(os.path.join('./data/', dataset, subset)):
             for dir_name in dirs:
 
-                if dataset == 'vkitty'  :
+                if dataset == 'vkitty' or 'kth':
                   if subset == 'train':
                    if dir_name != '0001' :
                     print(dir_name)
@@ -52,7 +52,10 @@ class VideoDataGenerator(object):
                                     # print('Reading from ' + name)
                                     image = scipy.ndimage.imread(
                                         os.path.join('./data/', dataset, subset, dir_name,dir_name2, name))
-                                    image = (scipy.misc.imresize(image, [64,200]).astype(float) - 127) / 128.0
+                                    if dataset == 'vkitty':
+                                        image = (scipy.misc.imresize(image, [64,200]).astype(float) - 127) / 128.0
+                                    else:
+                                        image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
                                     c = (c + 1) % frame_stack
                                     if self.color:
                                         frames.append(image)
@@ -74,7 +77,10 @@ class VideoDataGenerator(object):
                               # print('Reading from ' + name)
                               image = scipy.ndimage.imread(os.path.join('./data/', dataset, subset, dir_name, name))
 
-                              image = (scipy.misc.imresize(image, [64,200]).astype(float) - 127) / 128.0
+                              if dataset == 'vkitty':
+                                  image = (scipy.misc.imresize(image, [64, 200]).astype(float) - 127) / 128.0
+                              else:
+                                  image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
 
                               c = (c + 1) % frame_stack
                               if self.color:
