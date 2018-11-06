@@ -225,6 +225,7 @@ class WGANGP():
         conv5 = Conv3D(8, (1,3,3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv5)
         drop5 = Dropout(0.5)(conv5)
 
+
         middle = Reshape(target_shape=(7 * 7 * 8 * args.frame_stack,))(drop5)
         middle = Dense(units=self.latent_dim, activation='relu')(middle)
         middle = concatenate([middle, noise], axis=-1)
@@ -237,7 +238,21 @@ class WGANGP():
         # middle = Dense(units = 8 * 25 * 8 * args.frame_stack, activation='relu')(middle)
         # middle = Reshape(target_shape=(args.frame_stack, 8, 25, 8,))(middle)
 
+        # middle = Reshape(target_shape=(14 * 14 * 8 * args.frame_stack,))(drop5)
+        # middle = Dense(units=self.latent_dim, activation='relu')(middle)
+        # middle = concatenate([middle, noise], axis=-1)
+        # middle = Dense(units = 8 * 14 * 14 * args.frame_stack, activation='relu')(middle)
+        # middle = Reshape(target_shape=(args.frame_stack, 14, 14, 8,))(middle)
+        ##vkitty reshape  200 64
+        # middle = Reshape(target_shape=(4 * 12 * 8 * args.frame_stack,))(drop5)
+        # middle = Dense(units=self.latent_dim, activation='relu')(middle)
+        # middle = concatenate([middle, noise], axis=-1)
+        # middle = Dense(units = 4 * 12 * 8 * args.frame_stack, activation='relu')(middle)
+        # middle = Reshape(target_shape=(args.frame_stack, 4, 12, 8,))(middle)
+
+
         up6 = Conv3D(64, (1,2,2), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling3D(size = (1,2,2))(middle))
+        up6 = concatenate( [ up6, Lambda(lambda x: x[...,:1,:])(up6) ], axis=-2 )
         merge6 = concatenate([drop4,up6], axis = -1)
         conv6 = Conv3D(64, (1, 3, 3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge6)
         conv6 = Conv3D(64, (1, 3, 3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv6)
@@ -462,7 +477,7 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
 def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, color=False, dataset='ucf', frame_stack=2):
 
 
-    #args.name=args.name+'__'+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    args.name=args.name+'__'+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
     channel = 3 if color else 1
     model, pc, encoder = network_cpc(image_shape=(frame_stack, image_size[0], image_size[1], channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
@@ -510,7 +525,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
     print(args)
 
-    if False :
+    if True :
         print('Start Training CPC')
 
         #model = keras.models.load_model(join('cpc_models', 'cpc.h5'),custom_objects={'CPCLayer': CPCLayer})
@@ -608,8 +623,8 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
             # if not os.path.exists(os.path.join('images', args.name)):
             #     os.makedirs(os.path.join('images', args.name))
             # fig.savefig(os.path.join('images', args.name, 'epoch%d.png' % epoch), dpi=1500)
-            # gan.generator_model.save(join(output_dir, 'generator_' + args.name + '.h5'))
-            # gan.critic_model.save(join(output_dir, 'dis_' + args.name + '.h5'))
+        gan.generator_model.save(join(output_dir, 'generator_' + args.name + '.h5'))
+        gan.critic_model.save(join(output_dir, 'dis_' + args.name + '.h5'))
 
 
 
@@ -636,8 +651,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
         if not os.path.exists(os.path.join('images', args.name)):
             os.makedirs(os.path.join('images', args.name))
         for i in range(rows):
-                skvideo.io.vwrite(os.path.join('images', args.name, 'w1_epoch%d.mp4' % epoch), imgs[i],
-                          inputdict={'-r': '6'},
+                skvideo.io.vwrite(os.path.join('images', args.name, 'epoch%d.mp4' % epoch), imgs[i],inputdict={'-r': '6'},
                           outputdict={'-r': '6'})
 
         ###################  Validation   ###################
@@ -722,6 +736,7 @@ if __name__ == "__main__":
 
     args.gan_weight = 1.0
     args.cpc_weight = 1.0
+
     args.predict_terms = 3
     args.code_size = 32
     args.color = False
