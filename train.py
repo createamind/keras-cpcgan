@@ -225,17 +225,17 @@ class WGANGP():
         conv5 = Conv3D(8, (1,3,3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv5)
         drop5 = Dropout(0.5)(conv5)
 
-        # middle = Reshape(target_shape=(14 * 14 * 8 * args.frame_stack,))(drop5)
-        # middle = Dense(units=self.latent_dim, activation='relu')(middle)
-        # middle = concatenate([middle, noise], axis=-1)
-        # middle = Dense(units = 8 * 14 * 14 * args.frame_stack, activation='relu')(middle)
-        # middle = Reshape(target_shape=(args.frame_stack, 14, 14, 8,))(middle)
-
-        middle = Reshape(target_shape=(25 * 8 * 8 * args.frame_stack,))(drop5)
+        middle = Reshape(target_shape=(7 * 7 * 8 * args.frame_stack,))(drop5)
         middle = Dense(units=self.latent_dim, activation='relu')(middle)
         middle = concatenate([middle, noise], axis=-1)
-        middle = Dense(units = 8 * 25 * 8 * args.frame_stack, activation='relu')(middle)
-        middle = Reshape(target_shape=(args.frame_stack, 8, 25, 8,))(middle)
+        middle = Dense(units = 8 * 7 * 7 * args.frame_stack, activation='relu')(middle)
+        middle = Reshape(target_shape=(args.frame_stack, 7, 7, 8,))(middle)
+
+        # middle = Reshape(target_shape=(25 * 8 * 8 * args.frame_stack,))(drop5)
+        # middle = Dense(units=self.latent_dim, activation='relu')(middle)
+        # middle = concatenate([middle, noise], axis=-1)
+        # middle = Dense(units = 8 * 25 * 8 * args.frame_stack, activation='relu')(middle)
+        # middle = Reshape(target_shape=(args.frame_stack, 8, 25, 8,))(middle)
 
         up6 = Conv3D(64, (1,2,2), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling3D(size = (1,2,2))(middle))
         merge6 = concatenate([drop4,up6], axis = -1)
@@ -462,7 +462,7 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
 def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, color=False, dataset='ucf', frame_stack=2):
 
 
-    args.name=args.name+'__'+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    #args.name=args.name+'__'+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
     channel = 3 if color else 1
     model, pc, encoder = network_cpc(image_shape=(frame_stack, image_size[0], image_size[1], channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
@@ -510,7 +510,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
     print(args)
 
-    if True :
+    if False :
         print('Start Training CPC')
 
         #model = keras.models.load_model(join('cpc_models', 'cpc.h5'),custom_objects={'CPCLayer': CPCLayer})
@@ -613,29 +613,32 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
 
 
-            rows = args.batch_size
-            cols = args.terms + args.predict_terms
+        rows = args.batch_size
+        cols = args.terms + args.predict_terms
 
-            init_img = x_img[0:rows, ...]
-            init_img = (init_img + 1)*0.5*255
-            gen_img = gen_model.predict([x_img[0:rows,...],noise[0:rows,...]])
-            gen_img = (gen_img + 1)*0.5*255
+        init_img = x_img[0:rows, ...]
+        init_img = (init_img + 1)*0.5*255
+        gen_img = gen_model.predict([x_img[0:rows,...],noise[0:rows,...]])
+        gen_img = (gen_img + 1)*0.5*255
 
 
-            imgs = np.concatenate((init_img,gen_img),axis=1)
+        imgs = np.concatenate((init_img,gen_img),axis=1)
+        imgs_shape = imgs.shape
+        new_shape = imgs_shape[:1]+(imgs_shape[1]*imgs_shape[2],)+imgs_shape[3:]
+        imgs = imgs.reshape(new_shape)
 
-            if imgs.shape[-1] == 1:
-                imgs = np.concatenate([imgs, imgs, imgs], axis=-1)
+        if imgs.shape[-1] == 1:
+            imgs = np.concatenate([imgs, imgs, imgs], axis=-1)
 
-            for _ in range(4):
-                imgs = np.concatenate((imgs,imgs),axis=2)
-            if not os.path.exists(os.path.join('images', args.name)):
-                os.makedirs(os.path.join('images', args.name))
-            for i in range(rows):
-                for j in range(cols):
-                    skvideo.io.vwrite(os.path.join('images', args.name, 'epoch%d.mp4' % epoch), imgs[i,j],
-                              inputdict={'-r': '12'},
-                              outputdict={'-r': '12'})
+        for _ in range(3):
+            imgs = np.concatenate((imgs,imgs),axis=1)
+            
+        if not os.path.exists(os.path.join('images', args.name)):
+            os.makedirs(os.path.join('images', args.name))
+        for i in range(rows):
+                skvideo.io.vwrite(os.path.join('images', args.name, 'w1_epoch%d.mp4' % epoch), imgs[i],
+                          inputdict={'-r': '6'},
+                          outputdict={'-r': '6'})
 
         ###################  Validation   ###################
 
@@ -718,14 +721,14 @@ if __name__ == "__main__":
     args = argparser.parse_args()
 
     args.gan_weight = 1.0
-    args.cpc_weight = 100.0
+    args.cpc_weight = 1.0
     args.predict_terms = 3
     args.code_size = 32
     args.color = False
     args.terms = 3
-    args.cpc_epochs = 50
+    args.cpc_epochs = 0
     args.frame_stack = 6
-    # args.load_name = "models"
+    args.load_name = args.name
     # args.dataset = "ucf" # 
     # args.dataset = "mnist" # 
     # args.dataset = "generated" # 
