@@ -518,7 +518,7 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
 
 def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, color=False, dataset='ucf'):
 
-    if dataset == 'ucf' or dataset == 'walking' or dataset == 'baby':
+    if dataset == 'ucf' or dataset == 'walking' or dataset == 'kth':
         # Prepare data
         train_data = VideoDataGenerator(batch_size=batch_size, subset='train', terms=terms,
                                         positive_samples=batch_size // 2, predict_terms=predict_terms,
@@ -677,7 +677,7 @@ if __name__ == "__main__":
         help='ucf[default], walking, mnist, generated')
     argparser.add_argument(
         '-e', '--cpc-epochs',
-        default=1,
+        default=100,
         type=int,
         help='cpc epochs')
     argparser.add_argument(
@@ -727,21 +727,23 @@ if __name__ == "__main__":
 
     args.gan_weight = 1.0
     args.cpc_weight = 100.0
-    args.predict_terms = 4
+    args.predict_terms = 8
     args.code_size = 64
     args.batch_size = 8
     args.color = False
-    args.terms = 4
+    args.terms = 8
     # args.load_name = "models"
 
     # args.dataset = "ucf" # 
     # args.dataset = "mnist" # 
     # args.dataset = "generated" # 
-    # args.dataset = "walking" # 
+    args.dataset = "kth" #
 
     if args.dataset == 'ucf' or args.dataset == 'baby':
         args.image_size = 224
     elif args.dataset == 'walking':
+        args.image_size = 112
+    elif args.dataset == 'kth':
         args.image_size = 112
     else:
         args.image_size = 28
