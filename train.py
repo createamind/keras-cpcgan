@@ -472,7 +472,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
     #os.system('git log -1')
 
 
-    if dataset == 'ucf' or dataset == 'walking' or dataset == 'baby' or dataset == 'vkitty':
+    if dataset == 'ucf' or dataset == 'walking' or dataset == 'baby' or dataset == 'vkitty' or dataset == 'kth':
         # Prepare data
         train_data = VideoDataGenerator(batch_size=batch_size, subset='train', terms=terms,
                                         positive_samples=batch_size // 2, predict_terms=predict_terms,
@@ -733,12 +733,12 @@ if __name__ == "__main__":
     # args.dataset = "ucf" # 
     # args.dataset = "mnist" # 
     # args.dataset = "generated" # 
-    args.dataset = "vkitty" #
+    args.dataset = "kth" #
     args.batch_size=3
 
     if args.dataset == 'ucf' or args.dataset == 'baby':
         args.image_size = [224,224]
-    elif args.dataset == 'walking':
+    elif args.dataset == 'walking' or 'kth':
         args.image_size = [112,112]
     elif args.dataset == 'vkitty':
         args.image_size = [64,200]
