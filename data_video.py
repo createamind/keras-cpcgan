@@ -36,7 +36,7 @@ class VideoDataGenerator(object):
         for _, dirs, files in os.walk(os.path.join('./data/', dataset, subset)):
             for dir_name in dirs:
 
-                if dataset == 'vkitty' or 'kth':
+                if dataset ==  'vkitty' or dataset =='kth' or dataset == 'vkittytest'  :
                   if subset == 'train':
                    if dir_name != '0001' :
                     print(dir_name)
@@ -44,6 +44,7 @@ class VideoDataGenerator(object):
                     images = []
                     for _, dirs2, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
                         for dir_name2 in dirs2:
+                            print(dir_name2)
                             for _, _, files in os.walk(os.path.join('./data/', dataset, subset, dir_name,dir_name2)):
                                 images = []
                                 c = 0
@@ -52,7 +53,7 @@ class VideoDataGenerator(object):
                                     # print('Reading from ' + name)
                                     image = scipy.ndimage.imread(
                                         os.path.join('./data/', dataset, subset, dir_name,dir_name2, name))
-                                    if dataset == 'vkitty':
+                                    if dataset == 'vkitty'  or dataset == 'vkittytest' :
                                         image = (scipy.misc.imresize(image, [64,200]).astype(float) - 127) / 128.0
                                     else:
                                         image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
@@ -64,7 +65,10 @@ class VideoDataGenerator(object):
                                     if c == 0:
                                         images.append(copy.deepcopy(frames))
                                         frames = []
+                                    #print('1len framesimages: ',len(images))
+                                print('2len framesimages : ', len(images))
                             self.videos.append(copy.deepcopy(images))
+                            print('len videos: ',  len(self.videos))
 
                   else:
                       print(dir_name)
@@ -77,7 +81,7 @@ class VideoDataGenerator(object):
                               # print('Reading from ' + name)
                               image = scipy.ndimage.imread(os.path.join('./data/', dataset, subset, dir_name, name))
 
-                              if dataset == 'vkitty':
+                              if dataset == 'vkitty' or dataset== 'vkittytest'  :
                                   image = (scipy.misc.imresize(image, [64, 200]).astype(float) - 127) / 128.0
                               else:
                                   image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
@@ -90,7 +94,7 @@ class VideoDataGenerator(object):
                               if c == 0:
                                   images.append(copy.deepcopy(frames))
                                   frames = []
-                          print
+                          #print
                       self.videos.append(copy.deepcopy(images))
 
                 else:

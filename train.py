@@ -437,7 +437,7 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
 
     # Set learning phase (https://stackoverflow.com/questions/42969779/keras-error-you-must-feed-a-value-for-placeholder-tensor-bidirectional-1-keras)
     K.set_learning_phase(1)
-
+    print('image shape : ',image_shape)
     # Define encoder model
     encoder_input = keras.layers.Input(image_shape)
     encoder_output = network_encoder(encoder_input, code_size, image_shape[1])
@@ -486,7 +486,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
     os.system('git log -1')
 
 
-    if dataset == 'ucf' or dataset == 'walking' or dataset == 'baby' or dataset == 'vkitty' or dataset == 'kth':
+    if dataset == 'ucf' or dataset == 'walking' or dataset == 'baby' or dataset == 'vkitty' or dataset == 'kth' or dataset == 'vkittytest':
         # Prepare data
         train_data = VideoDataGenerator(batch_size=batch_size, subset='train', terms=terms,
                                         positive_samples=batch_size // 2, predict_terms=predict_terms,
@@ -738,23 +738,24 @@ if __name__ == "__main__":
     args.cpc_weight = 1.0
 
     args.predict_terms = 3
-    args.code_size = 32
-    args.color = False
+    args.code_size = 1024
+    args.color = True
     args.terms = 3
-    args.cpc_epochs = 0
-    args.frame_stack = 6
-    args.load_name = args.name
+    args.cpc_epochs = 300
+    args.frame_stack = 4
+    #args.load_name = args.name
     # args.dataset = "ucf" # 
     # args.dataset = "mnist" # 
     # args.dataset = "generated" # 
-    args.dataset = "kth" #
-    args.batch_size=3
+    args.dataset = "vkitty" 
+    #args.dataset = 'vkittytest'
+    args.batch_size=2
 
     if args.dataset == 'ucf' or args.dataset == 'baby':
         args.image_size = [224,224]
-    elif args.dataset == 'walking' or 'kth':
+    elif args.dataset == 'walking' or args.dataset == 'kth':
         args.image_size = [112,112]
-    elif args.dataset == 'vkitty':
+    elif args.dataset == 'vkitty' or args.dataset== 'vkittytest':
         args.image_size = [64,200]
     else:
         args.image_size = [28,28]
