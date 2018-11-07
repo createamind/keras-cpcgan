@@ -1,4 +1,5 @@
-
+import matplotlib
+matplotlib.use('Agg')
 import datetime
 import argparse
 import tensorflow as tf
@@ -294,11 +295,12 @@ class WGANGP():
         conv5 = Conv2D(8, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv5)
         drop5 = Dropout(0.5)(conv5)
 
-        middle = Reshape(target_shape=(14 * 14 * 8,))(drop5)
+       # middle = Reshape(target_shape=(14 * 14 * 8,))(drop5)
+        middle = Reshape(target_shape=(7*7*8,))(drop5)
         middle = Dense(units=self.latent_dim, activation='relu')(middle)
         middle = concatenate([middle, noise], axis=-1)
-        middle = Dense(units = 8 * 14 * 14, activation='relu')(middle)
-        middle = Reshape(target_shape=(14, 14, 8,))(middle)
+        middle = Dense(units = 8 * 7 * 7, activation='relu')(middle)
+        middle = Reshape(target_shape=(7, 7, 8,))(middle)
 
         up6 = Conv2D(64, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(middle))
         merge6 = concatenate([drop4,up6], axis = 3)
@@ -462,10 +464,11 @@ class CPCLayer(keras.layers.Layer):
         # Compute dot product among vectors
         preds, y_encoded = inputs
         dot_product = K.mean(y_encoded * preds, axis=-1)
-        dot_product = K.mean(dot_product, axis=-1, keepdims=True)  # average along the temporal dimension
+        dot_product = K.sigmoid(dot_product)
+        dot_product_probs = K.mean(dot_product, axis=-1, keepdims=True)  # average along the temporal dimension
 
         # Keras loss functions take probabilities
-        dot_product_probs = K.sigmoid(dot_product)
+        #dot_product_probs = K.sigmoid(dot_product)
 
         return dot_product_probs
 
@@ -677,12 +680,12 @@ if __name__ == "__main__":
         help='ucf[default], walking, mnist, generated')
     argparser.add_argument(
         '-e', '--cpc-epochs',
-        default=100,
+        default=220,
         type=int,
         help='cpc epochs')
     argparser.add_argument(
         '-g', '--gan-epochs',
-        default=1000,
+        default=200,
         type=int,
         help='gan epochs')
     argparser.add_argument(
@@ -726,18 +729,18 @@ if __name__ == "__main__":
     args = argparser.parse_args()
 
     args.gan_weight = 1.0
-    args.cpc_weight = 100.0
-    args.predict_terms = 8
-    args.code_size = 64
-    args.batch_size = 8
+    args.cpc_weight = 5.0
+    args.predict_terms = 4
+    args.code_size = 128
+    args.batch_size = 16
     args.color = False
-    args.terms = 8
-    # args.load_name = "models"
+    args.terms = 4
+   # args.load_name = ""
 
     # args.dataset = "ucf" # 
     # args.dataset = "mnist" # 
     # args.dataset = "generated" # 
-    args.dataset = "kth" #
+    args.dataset = "kth"
 
     if args.dataset == 'ucf' or args.dataset == 'baby':
         args.image_size = 224
@@ -748,7 +751,7 @@ if __name__ == "__main__":
     else:
         args.image_size = 28
 
-
+    print(args)
     train_model(
         args,
         batch_size=args.batch_size,
@@ -760,4 +763,4 @@ if __name__ == "__main__":
         image_size=args.image_size,
         color=args.color,
         dataset=args.dataset
-    )
+        ) 

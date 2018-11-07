@@ -59,7 +59,7 @@ class VideoDataGenerator(object):
                                     #     image = (scipy.misc.imresize(image, [224, 224]).astype(float) - 127) / 128.0
                                     images.append(image[:, :, :1])
                                 self.videos.append(copy.deepcopy(images))
-                            self.videos.append(copy.deepcopy(images))
+
 
                   else:
                       print(dir_name)
@@ -77,7 +77,7 @@ class VideoDataGenerator(object):
                               #     image = (scipy.misc.imresize(image, [224, 224]).astype(float) - 127) / 128.0
                               images.append(image[:, :, :1])
                           self.videos.append(copy.deepcopy(images))
-                      self.videos.append(copy.deepcopy(images))
+
 
                 else:
                     print(dir_name)
