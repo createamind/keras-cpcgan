@@ -747,8 +747,8 @@ if __name__ == "__main__":
     # args.dataset = "ucf" # 
     # args.dataset = "mnist" # 
     # args.dataset = "generated" # 
-    args.dataset = "vkitty" 
-    #args.dataset = 'vkittytest'
+    #args.dataset = "vkitty" 
+    args.dataset = 'vkittytest'
     args.batch_size=2
 
     if args.dataset == 'ucf' or args.dataset == 'baby':

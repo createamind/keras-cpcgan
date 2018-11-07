@@ -24,7 +24,7 @@ class VideoDataGenerator(object):
         self.rescale = rescale
 
         self.videos = []
-
+        self.framesall = []
         print('load date start')
         print(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
         print(dataset,subset)
@@ -35,18 +35,18 @@ class VideoDataGenerator(object):
 
         for _, dirs, files in os.walk(os.path.join('./data/', dataset, subset)):
             for dir_name in dirs:
-
+                #framesall = []
                 if dataset ==  'vkitty' or dataset =='kth' or dataset == 'vkittytest'  :
                   if subset == 'train':
                    if dir_name != '0001' :
                     print(dir_name)
 
-                    images = []
+                    #framesall = []
                     for _, dirs2, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
                         for dir_name2 in dirs2:
                             print(dir_name2)
                             for _, _, files in os.walk(os.path.join('./data/', dataset, subset, dir_name,dir_name2)):
-                                images = []
+                                #framesall = []
                                 c = 0
                                 frames = []
                                 for name in sorted(files):
@@ -63,18 +63,18 @@ class VideoDataGenerator(object):
                                     else:
                                         frames.append(image[:, :, :1])
                                     if c == 0:
-                                        images.append(copy.deepcopy(frames))
+                                        self.framesall.append(copy.deepcopy(frames))
                                         frames = []
-                                    #print('1len framesimages: ',len(images))
-                                print('2len framesimages : ', len(images))
-                            self.videos.append(copy.deepcopy(images))
-                            print('len videos: ',  len(self.videos))
+                                    #print('1len framesframesall: ',len(images))
+                                print('2len framesframesall : ', len(self.framesall))
+                            #self.videos.append(copy.deepcopy(framesall))
+                            #print('len videos: ',  len(self.videos))
 
                   else:
                       print(dir_name)
-                      images = []
+                      #framesall = []
                       for _, _, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
-                          images = []
+                          #framesall = []
                           c = 0
                           frames = []
                           for name in sorted(files):
@@ -92,16 +92,16 @@ class VideoDataGenerator(object):
                               else:
                                   frames.append(image[:, :, :1])
                               if c == 0:
-                                  images.append(copy.deepcopy(frames))
+                                  self.framesall.append(copy.deepcopy(frames))
                                   frames = []
                           #print
-                      self.videos.append(copy.deepcopy(images))
+                      #self.videos.append(copy.deepcopy(framesall))
 
                 else:
                     print(dir_name)
-                    images = []
+                    #framesall = []
                     for _, _, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
-                        images = []
+                        #framesall = []
                         c = 0
                         frames = []
                         for name in sorted(files):
@@ -118,15 +118,15 @@ class VideoDataGenerator(object):
                                 frames.append(image[:, :, :1])
 
                             if c == 0:
-                                images.append(copy.deepcopy(frames))
+                                self.framesall.append(copy.deepcopy(frames))
                                 frames = []
-                    self.videos.append(copy.deepcopy(images))
+                    #self.videos.append(copy.deepcopy(framesall))
             break
 
         print(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
         print('load date over . ')
-        print('len videos')
-        print(len(self.videos))
+        #print('len videos')
+        #print(len(self.videos))
 
         self.n_samples = 3000 if subset == 'train' else 200
         self.n_batches = self.n_samples // batch_size
@@ -158,29 +158,23 @@ class VideoDataGenerator(object):
             sentence_labels[b] = 1 if random.randint(1,5) == 1 else 0
         x, y, z = [], [], []
         for b in range(self.batch_size):
-            random_video = random.randint(0, len(self.videos) - 1)
-            random_pos = random.randint(self.terms, len(self.videos[random_video]) - self.predict_terms)
-            term_images = self.videos[random_video][random_pos - self.terms: random_pos]
-            true_images = self.videos[random_video][random_pos: random_pos + self.predict_terms]
+            random_pos = random.randint(self.terms, len(self.framesall)  - self.predict_terms)
+            term_frames = self.framesall[random_pos - self.terms: random_pos]
+            true_frames = self.framesall[random_pos: random_pos + self.predict_terms]
 
-            #print('true random_video, random_pos')
-            #print(random_video, random_pos)
+            #print('random_pos: ', random_pos)
 
-            random_video = random.randint(0, len(self.videos) - 1)
-            random_pos = random.randint(self.terms, len(self.videos[random_video]) - self.predict_terms)
+            random_pos = random.randint(self.terms, len(self.framesall) - self.predict_terms)
 
-            false_images = [self.videos[random_video][random.randint(0, len(self.videos[random_video]) - 1)] for i in range(self.predict_terms)]
-            #print("false random_video, random_pos")
-            #print(random_video,random_pos)
+            false_frames = [ self.framesall[random.randint(0, len(self.framesall) - 1)] for i in range(self.predict_terms)]
+            #print('random_pos: ' , random_pos)
 
             if sentence_labels[b] == 0:
-                x.append(term_images)
-                y.append(false_images)
-                #z.append(true_images)
+                x.append(term_frames)
+                y.append(false_frames)
             else:
-                x.append(term_images)
-                y.append(true_images)
-                #z.append(true_images)
+                x.append(term_frames)
+                y.append(true_frames)
 
         return [np.array(x), np.array(y)], sentence_labels
 
