@@ -35,8 +35,9 @@ class VideoDataGenerator(object):
 
         for _, dirs, files in os.walk(os.path.join('./data/', dataset, subset)):
             for dir_name in dirs:
+                #a=0
                 #framesall = []
-                if dataset ==  'vkitty' or dataset =='kth' or dataset == 'vkittytest'  :
+                if dataset ==  'vkitty' or dataset =='kth' or dataset == 'vkittytest' : # or dataset =='ucfbig' :
                   if subset == 'train':
                    if dir_name != '0001' :
                     print(dir_name)
@@ -94,6 +95,9 @@ class VideoDataGenerator(object):
                               if c == 0:
                                   self.framesall.append(copy.deepcopy(frames))
                                   frames = []
+                          #a = (a + 1 )
+                          #if a > 10:
+                          #    break
                           #print
                       #self.videos.append(copy.deepcopy(framesall))
 
@@ -107,7 +111,7 @@ class VideoDataGenerator(object):
                         for name in sorted(files):
                             # print('Reading from ' + name)
                             image = scipy.ndimage.imread(os.path.join('./data/', dataset, subset, dir_name, name))
-                            if dataset == 'walking':
+                            if dataset == 'walking' or dataset == 'ucfbig' :
                                 image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
                             else:
                                 image = (scipy.misc.imresize(image, [224, 224]).astype(float) - 127) / 128.0

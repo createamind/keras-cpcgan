@@ -486,7 +486,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
     os.system('git log -1')
 
 
-    if dataset == 'ucf' or dataset == 'walking' or dataset == 'baby' or dataset == 'vkitty' or dataset == 'kth' or dataset == 'vkittytest':
+    if dataset == 'ucf' or dataset == 'walking' or dataset == 'baby' or dataset == 'vkitty' or dataset == 'kth' or dataset == 'vkittytest' or dataset =='ucfbig' : 
         # Prepare data
         train_data = VideoDataGenerator(batch_size=batch_size, subset='train', terms=terms,
                                         positive_samples=batch_size // 2, predict_terms=predict_terms,
@@ -564,6 +564,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
         encoder.save(join(output_dir, 'encoder_' + args.name + '.h5'))
 
     print("Start Training GAN")
+    print(args)
     cpc_sigma = CPCLayer()
     gan = WGANGP(args, pc, encoder, cpc_sigma)
     gen_model = gan.gen_model
@@ -737,23 +738,23 @@ if __name__ == "__main__":
     args.gan_weight = 1.0
     args.cpc_weight = 1.0
 
-    args.predict_terms = 3
+    args.predict_terms = 4
     args.code_size = 1024
     args.color = True
-    args.terms = 3
+    args.terms = 4
     args.cpc_epochs = 300
-    args.frame_stack = 4
+    args.frame_stack = 5
     #args.load_name = args.name
-    # args.dataset = "ucf" # 
+    args.dataset = "ucfbig" # 
     # args.dataset = "mnist" # 
     # args.dataset = "generated" # 
     #args.dataset = "vkitty" 
-    args.dataset = 'vkittytest'
+    #args.dataset = 'vkittytest'
     args.batch_size=2
 
     if args.dataset == 'ucf' or args.dataset == 'baby':
         args.image_size = [224,224]
-    elif args.dataset == 'walking' or args.dataset == 'kth':
+    elif args.dataset == 'walking' or args.dataset == 'kth' or args.dataset =='ucfbig' :
         args.image_size = [112,112]
     elif args.dataset == 'vkitty' or args.dataset== 'vkittytest':
         args.image_size = [64,200]
