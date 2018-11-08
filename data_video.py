@@ -158,11 +158,11 @@ class VideoDataGenerator(object):
     #     return self.batches[self.batch_index]
 
     def next(self):
-        sentence_labels = np.ones((self.batch_size, 1)).astype('int32')
+        sentence_labels = np.zeros((self.batch_size, 1)).astype('int32')
         # for b in range(self.batch_size):
         #     sentence_labels[b] = 1 if random.randint(1,5) == 1 else 0
         for b in range(self.positive_samples):
-            sentence_labels[b] = 0
+            sentence_labels[b] = 1
 
         x, y, z = [], [], []
         for b in range(self.batch_size):
@@ -170,8 +170,8 @@ class VideoDataGenerator(object):
             random_pos = random.randint(self.terms, len(self.videos[random_video]) - self.predict_terms)   # the image position
             term_images = self.videos[random_video][random_pos - self.terms: random_pos]
             true_images = self.videos[random_video][random_pos: random_pos + self.predict_terms]
-            #false_images = [self.videos[random_video][random.randint(0, len(self.videos[random_video]) - 1)] for i in range(self.predict_terms)]
-            false_images = self.videos[random_video][random_pos - self.predict_terms: random_pos]
+            false_images = [self.videos[random_video][random.randint(0, len(self.videos[random_video]) - 1)] for i in range(self.predict_terms)]
+            #false_images = self.videos[random_video][random_pos - self.predict_terms: random_pos]
 
             x.append(term_images)
             if sentence_labels[b] == 0:

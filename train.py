@@ -79,6 +79,7 @@ class WGANGP():
         self.latent_dim = args.code_size
         self.predict_terms = args.predict_terms
         self.terms = args.terms
+        self.dataset = args.dataset
 
         pc.trainable = False
         encoder.trainable = False
@@ -166,7 +167,10 @@ class WGANGP():
 
         z = time_distributed(encoder,img)
 
-        cpc_loss = cpc_sigma([pred, z])
+        if args.cpc_weight == 0.0:
+            cpc_loss = Lambda(lambda x: x[:,:1,0])(z_gen)
+        else:
+            cpc_loss = cpc_sigma([pred, z])
 
         self.generator_model = Model(inputs=[x_img, z_gen], outputs=[valid, cpc_loss])
         self.generator_model.compile(loss=[self.wasserstein_loss, 'binary_crossentropy'], loss_weights=[args.gan_weight, args.cpc_weight], optimizer=optimizer)
@@ -294,11 +298,18 @@ class WGANGP():
         conv5 = Conv2D(8, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv5)
         drop5 = Dropout(0.5)(conv5)
 
-        middle = Reshape(target_shape=(14 * 14 * 8,))(drop5)
-        middle = Dense(units=self.latent_dim, activation='relu')(middle)
-        middle = concatenate([middle, noise], axis=-1)
-        middle = Dense(units = 8 * 14 * 14, activation='relu')(middle)
-        middle = Reshape(target_shape=(14, 14, 8,))(middle)
+        if self.dataset == 'kth':
+            middle = Reshape(target_shape=(7 * 7 * 8,))(drop5)
+            middle = Dense(units=self.latent_dim, activation='relu')(middle)
+            middle = concatenate([middle, noise], axis=-1)
+            middle = Dense(units=8 * 7 * 7, activation='relu')(middle)
+            middle = Reshape(target_shape=(7, 7, 8,))(middle)
+        else:
+            middle = Reshape(target_shape=(14 * 14 * 8,))(drop5)
+            middle = Dense(units=self.latent_dim, activation='relu')(middle)
+            middle = concatenate([middle, noise], axis=-1)
+            middle = Dense(units=8 * 14 * 14, activation='relu')(middle)
+            middle = Reshape(target_shape=(14, 14, 8,))(middle)
 
         up6 = Conv2D(64, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(middle))
         merge6 = concatenate([drop4,up6], axis = 3)
@@ -553,17 +564,31 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
     model, pc, encoder = network_cpc(image_shape=(image_size, image_size, channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
 
     if len(args.load_name) > 0:
-        pc = keras.models.load_model(join(output_dir, 'pc_' + args.load_name + '.h5'))#,custom_objects={'CPCLayer': CPCLayer})
-        encoder = keras.models.load_model(join(output_dir, 'encoder_' + args.load_name + '.h5'))
-        model = keras.models.load_model(join(output_dir, 'cpc_' + args.load_name + '.h5'),custom_objects={'CPCLayer': CPCLayer})
+        print('Loading CPC models')
+        pc = keras.models.load_model(join(args.load_name, 'pc_' + args.name + '_156.h5'))#,custom_objects={'CPCLayer': CPCLayer})
+        encoder = keras.models.load_model(join(args.load_name, 'encoder_' + args.name + '_156.h5'))
 
-    if True :
+    else:
         print('Start Training CPC')
 
         #model = keras.models.load_model(join('cpc_models', 'cpc.h5'),custom_objects={'CPCLayer': CPCLayer})
 
         # Callbacks
-        callbacks = [keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=1/3, patience=2, min_lr=1e-4)]
+
+        class SaveModel(keras.callbacks.Callback):
+            loss_min = 1000
+            def on_epoch_end(self, epoch, logs={}):
+                loss_now = (logs.get('loss') + logs.get('val_loss')) / 2
+                if loss_now < SaveModel.loss_min and epoch > 50:
+                    SaveModel.loss_min = loss_now
+                    print(SaveModel.loss_min)
+                    model.save(join(output_dir, 'cpc_' + args.name + '_%d.h5'% epoch))
+                    pc.save(join(output_dir, 'pc_' + args.name + '_%d.h5'% epoch))
+                    encoder.save(join(output_dir, 'encoder_' + args.name + '_%d.h5'% epoch))
+        save_model = SaveModel()
+
+        callbacks = [keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=1/3, patience=2, min_lr=1e-4), save_model]
+
 
         # Trains the model
         model.fit_generator(
@@ -607,7 +632,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
     for epoch in range(args.gan_epochs):
         #print(len(train_data))
-        for i in range(len(train_data) // 1):
+        for i in range(len(train_data) // 1): # len(train_data): number of batches
             #print("xxxxxxxxxxxxxxx")
             t0 = time.time()
 
@@ -621,11 +646,11 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
                 noise = np.random.normal(0, 1, (batch_size, predict_terms, args.code_size))
                 d_loss = gan.critic_model.train_on_batch([x_img, y_img, noise], [valid, fake, dummy])
 
-
+            t2 = time.time()
             g_loss = gan.generator_model.train_on_batch([x_img, noise], [valid, true_labels])
 
-            t2 = time.time()
-            # print("time elapsed:", t1 - t0, t2-t1)
+            t3 = time.time()
+            print("time elapsed:", t1 - t0, t2 - t1, t3 - t2)
             sys.stdout.write(
                 '\r Epoch {}: training[{} / {}]'.format(epoch, i, len(train_data)))
 
@@ -633,13 +658,13 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
         print("\nepoch: ", epoch, "\nd_loss: ", d_loss, "\ng_loss: ", g_loss)
 
-        rows = 5
+        rows = 2
         init_img = x_img[0:rows, ...]
         init_img = (init_img + 1)*0.5
         gen_img = gen_model.predict([x_img[0:rows,...],noise[0:rows,...]])
         gen_img = (gen_img + 1)*0.5
 
-        imgs = np.concatenate((init_img,gen_img),axis=1)
+        imgs = np.concatenate((init_img,gen_img), axis=1)
 
         if imgs.shape[-1] == 1:
             imgs = np.concatenate([imgs, imgs, imgs], axis=-1)
@@ -725,11 +750,12 @@ if __name__ == "__main__":
 
     args = argparser.parse_args()
 
+    args.cpc_epochs = 0
     args.gan_weight = 1.0
-    args.cpc_weight = 100.0
-    args.predict_terms = 8
+    args.cpc_weight = 10.0
+    args.predict_terms = 4
     args.code_size = 64
-    args.batch_size = 1
+    args.batch_size = 2
     args.color = False
     args.terms = 8
     # args.load_name = "models"
@@ -745,6 +771,7 @@ if __name__ == "__main__":
         args.image_size = 112
     elif args.dataset == 'kth':
         args.image_size = 112
+        args.color = False
     else:
         args.image_size = 28
 
