@@ -34,8 +34,9 @@ class VideoDataGenerator(object):
 
 
         for _, dirs, files in os.walk(os.path.join('./data/', dataset, subset)):
+            a=0
             for dir_name in dirs:
-                #a=0
+                
                 #framesall = []
                 if dataset ==  'vkitty' or dataset =='kth' or dataset == 'vkittytest' : # or dataset =='ucfbig' :
                   if subset == 'train':
@@ -124,7 +125,12 @@ class VideoDataGenerator(object):
                             if c == 0:
                                 self.framesall.append(copy.deepcopy(frames))
                                 frames = []
-                        print('2len framesframesall : ', len(self.framesall))
+                        print('len framesall: ', len(self.framesall))
+                    a = (a + 1)
+                    print(a,'s dirs')
+                    if a > 5010:
+                        break
+                        #print('2len framesframesall : ', len(self.framesall))
                     #self.videos.append(copy.deepcopy(framesall))
             break
 

@@ -740,7 +740,7 @@ if __name__ == "__main__":
 
     args.predict_terms = 4
     args.code_size = 1024
-    args.color = True
+    args.color = False
     args.terms = 4
     args.cpc_epochs = 300
     args.frame_stack = 5
