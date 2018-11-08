@@ -729,7 +729,7 @@ if __name__ == "__main__":
     args.cpc_weight = 100.0
     args.predict_terms = 8
     args.code_size = 64
-    args.batch_size = 8
+    args.batch_size = 1
     args.color = False
     args.terms = 8
     # args.load_name = "models"
