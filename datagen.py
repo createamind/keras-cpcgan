@@ -12,7 +12,7 @@ for _, dirs, files in os.walk('./'):
 				os.chdir(os.path.splitext(file)[0])
 				os.system("ffmpeg -y -i ../{0} -r 12 image-%06d.png".format(file))
 				os.chdir('../')
-				os.system('pwd; sleep 0.2')
+				#os.system('pwd; sleep 1.2')
 		os.chdir('..')
 
 #ffmpeg -y -i output.avi -r 12 image-%06d.png

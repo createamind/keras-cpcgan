@@ -98,7 +98,7 @@ class VideoDataGenerator(object):
                           #a = (a + 1 )
                           #if a > 10:
                           #    break
-                          #print
+                          print('2len framesframesall : ', len(self.framesall))
                       #self.videos.append(copy.deepcopy(framesall))
 
                 else:
@@ -124,6 +124,7 @@ class VideoDataGenerator(object):
                             if c == 0:
                                 self.framesall.append(copy.deepcopy(frames))
                                 frames = []
+                        print('2len framesframesall : ', len(self.framesall))
                     #self.videos.append(copy.deepcopy(framesall))
             break
 
