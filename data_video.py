@@ -113,7 +113,7 @@ class VideoDataGenerator(object):
                             # print('Reading from ' + name)
                             image = scipy.ndimage.imread(os.path.join('./data/', dataset, subset, dir_name, name))
                             if dataset == 'walking' or dataset == 'ucfbig' :
-                                image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
+                                image = (scipy.misc.imresize(image, [64, 64]).astype(float) - 127) / 128.0
                             else:
                                 image = (scipy.misc.imresize(image, [224, 224]).astype(float) - 127) / 128.0
                             c = (c + 1) % frame_stack

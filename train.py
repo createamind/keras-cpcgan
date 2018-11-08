@@ -483,7 +483,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
     model, pc, encoder = network_cpc(image_shape=(frame_stack, image_size[0], image_size[1], channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
 
     print(args)
-    os.system('git log -1')
+    #s.system('git log -1')
 
 
     if dataset == 'ucf' or dataset == 'walking' or dataset == 'baby' or dataset == 'vkitty' or dataset == 'kth' or dataset == 'vkittytest' or dataset =='ucfbig' : 
@@ -529,9 +529,21 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
         print('Start Training CPC')
 
         #model = keras.models.load_model(join('cpc_models', 'cpc.h5'),custom_objects={'CPCLayer': CPCLayer})
+        class SaveModel(keras.callbacks.Callback):
+            loss_min = 1000
+            def on_epoch_end(self, epoch, logs={}):
+                loss_now = (logs.get('loss') + logs.get('val_loss')) / 2
+                if loss_now < SaveModel.loss_min and epoch > 50:
+                    SaveModel.loss_min = loss_now
+                    print(SaveModel.loss_min)
+                    model.save(join(output_dir, 'cpc%d.h5'% epoch))
+                    pc.save(join(output_dir, 'pc%d.h5'% epoch))
+                    encoder.save(join(output_dir, 'encoder%d.h5'% epoch))
+        save_model = SaveModel()
 
+        callbacks = [keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=1/3, patience=2, min_lr=1e-4), save_model]
         # Callbacks
-        callbacks = [keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=1/3, patience=2, min_lr=1e-4)]
+        #callbacks = [keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=1/3, patience=2, min_lr=1e-4)]
 
         # Trains the model
         model.fit_generator(
@@ -750,7 +762,7 @@ if __name__ == "__main__":
     # args.dataset = "generated" # 
     #args.dataset = "vkitty" 
     #args.dataset = 'vkittytest'
-    args.batch_size=2
+    args.batch_size= 16
 
     if args.dataset == 'ucf' or args.dataset == 'baby':
         args.image_size = [224,224]
