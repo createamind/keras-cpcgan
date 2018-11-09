@@ -397,26 +397,26 @@ def network_encoder(x, code_size, image_size):
 
     ''' Define the network mapping images to embeddings '''
 
-    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=1, activation='linear')(x)
+    x = keras.layers.Conv2D(filters=32, kernel_size=3, strides=1, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=1, activation='linear')(x)
-    x = keras.layers.BatchNormalization()(x)
-    x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=1, activation='linear')(x)
+    x = keras.layers.Conv2D(filters=32, kernel_size=3, strides=1, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
     x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
+    x = keras.layers.Conv2D(filters=128, kernel_size=3, strides=2, activation='linear')(x)
+    x = keras.layers.BatchNormalization()(x)
+    x = keras.layers.LeakyReLU()(x)
 
     if image_size >= 64:
-        x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
+        x = keras.layers.Conv2D(filters=256, kernel_size=3, strides=2, activation='linear')(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.LeakyReLU()(x)
 
     if image_size >= 112:
-        x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
+        x = keras.layers.Conv2D(filters=512, kernel_size=3, strides=2, activation='linear')(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.LeakyReLU()(x)
 
@@ -426,9 +426,9 @@ def network_encoder(x, code_size, image_size):
         x = keras.layers.LeakyReLU()(x)
 
     x = keras.layers.Flatten()(x)
-    x = keras.layers.Dense(units=256, activation='linear')(x)
-    x = keras.layers.BatchNormalization()(x)
-    x = keras.layers.LeakyReLU()(x)
+    # x = keras.layers.Dense(units=12800, activation='linear')(x)
+    # x = keras.layers.BatchNormalization()(x)
+    # x = keras.layers.LeakyReLU()(x)
     x = keras.layers.Dense(units=code_size, activation='linear', name='encoder_embedding')(x)
 
     return x
