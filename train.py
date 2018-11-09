@@ -426,9 +426,9 @@ def network_encoder(x, code_size, image_size):
         x = keras.layers.LeakyReLU()(x)
 
     x = keras.layers.Flatten()(x)
-    # x = keras.layers.Dense(units=12800, activation='linear')(x)
-    # x = keras.layers.BatchNormalization()(x)
-    # x = keras.layers.LeakyReLU()(x)
+    x = keras.layers.Dense(units=1280, activation='linear')(x)
+    x = keras.layers.BatchNormalization()(x)
+    x = keras.layers.LeakyReLU()(x)
     x = keras.layers.Dense(units=code_size, activation='linear', name='encoder_embedding')(x)
 
     return x
@@ -754,11 +754,11 @@ if __name__ == "__main__":
     args.cpc_epochs = 1000
     args.gan_weight = 1.0
     args.cpc_weight = 5.0
-    args.predict_terms = 1
+    args.predict_terms = 4
     args.code_size = 128
     args.batch_size = 16
     args.color = False
-    args.terms = 6
+    args.terms = 4
     # args.load_name = "models"
 
     # args.dataset = "ucf" # 
@@ -776,7 +776,7 @@ if __name__ == "__main__":
     else:
         args.image_size = 28
 
-
+    print(args)
     train_model(
         args,
         batch_size=args.batch_size,
