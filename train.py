@@ -635,11 +635,11 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
         #print(len(train_data))
         for i in range(len(train_data) // 1): # len(train_data): number of batches
             #print("xxxxxxxxxxxxxxx")
-            t0 = time.time()
+            #t0 = time.time()
 
             [x_img, y_img], labels = next(train_data)
 
-            t1 = time.time()
+            #t1 = time.time()
 
             for _ in range(5):
                 #print("yyyyyyyyyyyyyyyyyyy")
@@ -647,11 +647,11 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
                 noise = np.random.normal(0, 1, (batch_size, predict_terms, args.code_size))
                 d_loss = gan.critic_model.train_on_batch([x_img, y_img, noise], [valid, fake, dummy])
 
-            t2 = time.time()
+            #t2 = time.time()
             g_loss = gan.generator_model.train_on_batch([x_img, noise], [valid, true_labels])
 
-            t3 = time.time()
-            print("time elapsed:", t1 - t0, t2 - t1, t3 - t2)
+            #t3 = time.time()
+            #print("time elapsed:", t1 - t0, t2 - t1, t3 - t2)
             sys.stdout.write(
                 '\r Epoch {}: training[{} / {}]'.format(epoch, i, len(train_data)))
 
@@ -703,7 +703,7 @@ if __name__ == "__main__":
         help='ucf[default], walking, mnist, generated')
     argparser.add_argument(
         '-e', '--cpc-epochs',
-        default=100,
+        default=500,
         type=int,
         help='cpc epochs')
     argparser.add_argument(
@@ -751,14 +751,14 @@ if __name__ == "__main__":
 
     args = argparser.parse_args()
 
-    args.cpc_epochs = 0
+    args.cpc_epochs = 1000
     args.gan_weight = 1.0
-    args.cpc_weight = 10.0
-    args.predict_terms = 4
-    args.code_size = 64
-    args.batch_size = 2
+    args.cpc_weight = 5.0
+    args.predict_terms = 1
+    args.code_size = 128
+    args.batch_size = 16
     args.color = False
-    args.terms = 8
+    args.terms = 6
     # args.load_name = "models"
 
     # args.dataset = "ucf" # 

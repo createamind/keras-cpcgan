@@ -170,8 +170,8 @@ class VideoDataGenerator(object):
             random_pos = random.randint(self.terms, len(self.videos[random_video]) - self.predict_terms)   # the image position
             term_images = self.videos[random_video][random_pos - self.terms: random_pos]
             true_images = self.videos[random_video][random_pos: random_pos + self.predict_terms]
-            false_images = [self.videos[random_video][random.randint(0, len(self.videos[random_video]) - 1)] for i in range(self.predict_terms)]
-            #false_images = self.videos[random_video][random_pos - self.predict_terms: random_pos]
+            #false_images = [self.videos[random_video][random.randint(0, len(self.videos[random_video]) - 1)] for i in range(self.predict_terms)]
+            false_images = self.videos[random_video][random_pos - self.predict_terms: random_pos]
 
             x.append(term_images)
             if sentence_labels[b] == 0:
