@@ -397,7 +397,7 @@ def network_encoder(x, code_size, image_size):
 
     ''' Define the network mapping images to embeddings '''
 
-    x = keras.layers.Conv2D(filters=32, kernel_size=3, strides=1, activation='linear')(x)
+    x = keras.layers.Conv2D(filters=16, kernel_size=3, strides=1, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
     x = keras.layers.Conv2D(filters=32, kernel_size=3, strides=1, activation='linear')(x)
@@ -426,7 +426,7 @@ def network_encoder(x, code_size, image_size):
         x = keras.layers.LeakyReLU()(x)
 
     x = keras.layers.Flatten()(x)
-    x = keras.layers.Dense(units=1280, activation='linear')(x)
+    x = keras.layers.Dense(units=256, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
     x = keras.layers.Dense(units=code_size, activation='linear', name='encoder_embedding')(x)
