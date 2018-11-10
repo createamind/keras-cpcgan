@@ -137,6 +137,7 @@ class VideoDataGenerator(object):
         print('load date over . ')
         print('len videos')
         print(len(self.videos))
+        self.n_videos = len(self.videos)
 
         #self.n_samples = 3000 if subset == 'train' else 200
         self.n_batches = self.n_samples // batch_size
@@ -166,12 +167,12 @@ class VideoDataGenerator(object):
 
         x, y, z = [], [], []
         for b in range(self.batch_size):
-            random_video = random.randint(0, len(self.videos) - 1)     # the video number
+            random_video = random.randint(0, self.n_videos - 1)     # the video number
             random_pos = random.randint(self.terms, len(self.videos[random_video]) - self.predict_terms)   # the image position
             term_images = self.videos[random_video][random_pos - self.terms: random_pos]
             true_images = self.videos[random_video][random_pos: random_pos + self.predict_terms]
-            rand_video = random.randint(0, len(self.videos) - 1)
-            false_images = [self.videos[rand_video][random.randint(0, len(self.videos[random_video]) - 1)] for i in range(self.predict_terms)]
+            rand_video = random.randint(0, self.n_videos - 1)
+            false_images = [self.videos[rand_video][random.randint(0, len(self.videos[rand_video]) - 1)] for i in range(self.predict_terms)]
             #false_images = self.videos[random_video][random_pos - self.predict_terms: random_pos]
 
             x.append(term_images)

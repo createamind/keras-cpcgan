@@ -392,6 +392,29 @@ class WGANGP():
 '''
 This module describes the contrastive predictive coding model from DeepMind
 '''
+def network_encoder1(x, code_size):
+
+    ''' Define the network mapping images to embeddings '''
+
+    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=1, activation='linear')(x)
+    x = keras.layers.BatchNormalization()(x)
+    x = keras.layers.LeakyReLU()(x)
+    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
+    x = keras.layers.BatchNormalization()(x)
+    x = keras.layers.LeakyReLU()(x)
+    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
+    x = keras.layers.BatchNormalization()(x)
+    x = keras.layers.LeakyReLU()(x)
+    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
+    x = keras.layers.BatchNormalization()(x)
+    x = keras.layers.LeakyReLU()(x)
+    x = keras.layers.Flatten()(x)
+    x = keras.layers.Dense(units=256, activation='linear')(x)
+    x = keras.layers.BatchNormalization()(x)
+    x = keras.layers.LeakyReLU()(x)
+    x = keras.layers.Dense(units=code_size, activation='linear', name='encoder_embedding')(x)
+
+    return x
 
 def network_encoder(x, code_size, image_size):
 
