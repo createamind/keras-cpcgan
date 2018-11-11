@@ -437,6 +437,9 @@ def network_encoder(x, code_size, image_size):
 
     ''' Define the network mapping images to embeddings '''
 
+    #x = keras.layers.Conv2D(filters=8, kernel_size=3, strides=1, activation='linear')(x)
+    #x = keras.layers.BatchNormalization()(x)
+    #x = keras.layers.LeakyReLU()(x)
     x = keras.layers.Conv2D(filters=16, kernel_size=3, strides=1, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
@@ -620,7 +623,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
             loss_min = 1000
             def on_epoch_end(self, epoch, logs={}):
                 loss_now = (logs.get('loss') + logs.get('val_loss')) / 2
-                if loss_now < SaveModel.loss_min and epoch > 50:
+                if loss_now < SaveModel.loss_min and epoch > 3:
                     SaveModel.loss_min = loss_now
                     print(SaveModel.loss_min)
                     model.save(join(output_dir, 'cpc_' + args.name + '_%d.h5'% epoch))
@@ -773,7 +776,7 @@ if __name__ == "__main__":
         help='code size')
     argparser.add_argument(
         '--lr',
-        default=1e-3,
+        default=5e-4,
         type=float,
         help='Learning rate')
     argparser.add_argument(
