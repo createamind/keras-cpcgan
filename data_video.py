@@ -41,7 +41,9 @@ class VideoDataGenerator(object):
 
                     #print(_, [type(img_dirs),img_dirs], files)
                     #continue
+                    
                     if len(dir_names) == 0:
+                        print(dir_path)
                         images = []
                         c = 0
                         frames = []
