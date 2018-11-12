@@ -532,8 +532,8 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
         class SaveModel(keras.callbacks.Callback):
             loss_min = 1000
             def on_epoch_end(self, epoch, logs={}):
-                loss_now = (logs.get('loss') + logs.get('val_loss')) / 2
-                if loss_now < SaveModel.loss_min and epoch > 50:
+                loss_now =  logs.get('loss')  # + logs.get('val_loss')) / 2
+                if loss_now < SaveModel.loss_min and epoch > 9:
                     SaveModel.loss_min = loss_now
                     print(SaveModel.loss_min)
                     model.save(join(output_dir, 'cpc%d.h5'% epoch))
@@ -752,22 +752,22 @@ if __name__ == "__main__":
 
     args.predict_terms = 4
     args.code_size = 1024
-    args.color = False
+    #args.color = False
     args.terms = 4
     args.cpc_epochs = 300
     args.frame_stack = 5
     #args.load_name = args.name
-    args.dataset = "ucfbig" # 
+    #args.dataset = "ucfbig" # 
     # args.dataset = "mnist" # 
     # args.dataset = "generated" # 
     #args.dataset = "vkitty" 
     #args.dataset = 'vkittytest'
-    args.batch_size= 16
+    #args.batch_size= 16
 
     if args.dataset == 'ucf' or args.dataset == 'baby':
         args.image_size = [224,224]
     elif args.dataset == 'walking' or args.dataset == 'kth' or args.dataset =='ucfbig' :
-        args.image_size = [112,112]
+        args.image_size = [64,64]
     elif args.dataset == 'vkitty' or args.dataset== 'vkittytest':
         args.image_size = [64,200]
     else:

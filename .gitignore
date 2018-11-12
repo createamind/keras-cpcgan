@@ -1,2 +1,4 @@
 .vscode/
-data/
+data
+models/*.h5
+__pycache__
