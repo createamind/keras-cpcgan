@@ -170,7 +170,10 @@ class WGANGP():
 
         z = time_distributed(encoder,img)
 
-        cpc_loss = cpc_sigma([pred, z])
+        if args.cpc_weight == 0.0:
+            cpc_loss = Lambda(lambda x: x[:,:1,0])(z_gen)
+        else:
+            cpc_loss = cpc_sigma([pred, z])
 
         self.generator_model = Model(inputs=[x_img, z_gen], outputs=[valid, cpc_loss])
         self.generator_model.compile(loss=[self.wasserstein_loss, 'binary_crossentropy'], loss_weights=[args.gan_weight, args.cpc_weight], optimizer=optimizer)
@@ -225,6 +228,9 @@ class WGANGP():
         conv5 = Conv3D(8, (1,3,3), activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv5)
         drop5 = Dropout(0.5)(conv5)
 
+
+        ##if args.image_size==
+        ##    elif args.image_size==
 
         middle = Reshape(target_shape=(7 * 7 * 8 * args.frame_stack,))(drop5)
         middle = Dense(units=self.latent_dim, activation='relu')(middle)
@@ -341,13 +347,13 @@ def network_encoder(x, code_size, image_size):
     x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
+    x = keras.layers.Conv3D(filters=128, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
+    x = keras.layers.Conv3D(filters=128, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
+    x = keras.layers.Conv3D(filters=128, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
 
@@ -383,7 +389,7 @@ def network_autoregressive(x):
     # x = keras.layers.GRU(units=256, return_sequences=True)(x)
     # x = keras.layers.BatchNormalization()(x)
 
-    x = keras.layers.GRU(units=256, return_sequences=False, name='ar_context')(x)
+    x = keras.layers.GRU(units=args.context_size, return_sequences=False, name='ar_context')(x)
 
     return x
 
@@ -400,6 +406,19 @@ def network_prediction(context, code_size, predict_terms):
         output = keras.layers.Lambda(lambda x: K.expand_dims(x, axis=1))(outputs[0])
     else:
         output = keras.layers.Lambda(lambda x: K.stack(x, axis=1))(outputs)
+
+    return output
+
+
+def network_prediction_rnn(context, code_size, predict_terms):
+
+    ''' Define the network mapping context to multiple predictions '''
+
+    context_size = context.shape[-1].value
+
+    x = RepeatVector(predict_terms, input_shape=(context_size,))(context)
+    x = LSTM(context_size, return_sequences=True)(x)
+    output = Dense(units=code_size, activation="linear")(x)
 
     return output
 
@@ -448,7 +467,7 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
     x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2], image_shape[3]))
     x_encoded = TimeDistributed(encoder_model)(x_input)
     context = network_autoregressive(x_encoded)
-    preds = network_prediction(context, code_size, predict_terms)
+    preds = network_prediction_rnn(context, code_size, predict_terms)
 
     y_input = keras.layers.Input((predict_terms, image_shape[0], image_shape[1], image_shape[2], image_shape[3]))
     y_encoded = TimeDistributed(encoder_model)(y_input)
@@ -476,11 +495,31 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
 
 def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, color=False, dataset='ucf', frame_stack=2):
 
-
     args.name=args.name+'__'+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
-    channel = 3 if color else 1
-    model, pc, encoder = network_cpc(image_shape=(frame_stack, image_size[0], image_size[1], channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
+    channel = 1 * (3 if color else 1)
+    model, pc, encoder = network_cpc(image_shape=(image_size, image_size, channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
+
+    if args.plan > 1:
+        print('Loading CPC models')
+        pc = keras.models.load_model(join(args.load_name, 'pc_' + args.name + '_best.h5'))#,custom_objects={'CPCLayer': CPCLayer})
+        encoder = keras.models.load_model(join(args.load_name, 'encoder_' + args.name + '_best.h5'))
+        model = keras.models.load_model(join(args.load_name, 'cpc_' + args.name + '_best.h5'),custom_objects={'CPCLayer': CPCLayer})
+    if args.plan == 3:
+        print('Evaluating CPC models')
+        #model = keras.models.load_model(join(args.load_name, 'cpc_' + args.name + '_best.h5'),custom_objects={'CPCLayer': CPCLayer})
+        eval_results = model.evaluate_generator(
+            generator=validation_data,
+            steps=len(validation_data),
+            verbose=1
+        )
+        print("eval_results:", eval_results)
+    else:
+        if args.plan == 1:
+            print('Start Training CPC')
+        else:
+            print('Resume Training CPC')
+
 
     print(args)
     #s.system('git log -1')
@@ -517,14 +556,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
         raise NotImplementedError
 
 
-
-    if len(args.load_name) > 0:
-        pc = keras.models.load_model(join(output_dir, 'pc_' + args.load_name + '.h5'))#,custom_objects={'CPCLayer': CPCLayer})
-        encoder = keras.models.load_model(join(output_dir, 'encoder_' + args.load_name + '.h5'))
-        model = keras.models.load_model(join(output_dir, 'cpc_' + args.load_name + '.h5'),custom_objects={'CPCLayer': CPCLayer})
-
     print(args)
-
     if True :
         print('Start Training CPC')
 
@@ -533,7 +565,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
             loss_min = 1000
             def on_epoch_end(self, epoch, logs={}):
                 loss_now =  logs.get('loss')  # + logs.get('val_loss')) / 2
-                if loss_now < SaveModel.loss_min and epoch > 9:
+                if loss_now < SaveModel.loss_min and epoch > 7:
                     SaveModel.loss_min = loss_now
                     print(SaveModel.loss_min)
                     model.save(join(output_dir, 'cpc%d.h5'% epoch))
@@ -751,10 +783,10 @@ if __name__ == "__main__":
     args.cpc_weight = 1.0
 
     args.predict_terms = 4
-    args.code_size = 1024
+    args.code_size = 1024  # z dim
     #args.color = False
     args.terms = 4
-    args.cpc_epochs = 300
+    args.cpc_epochs = 50
     args.frame_stack = 5
     #args.load_name = args.name
     #args.dataset = "ucfbig" # 
@@ -763,6 +795,14 @@ if __name__ == "__main__":
     #args.dataset = "vkitty" 
     #args.dataset = 'vkittytest'
     #args.batch_size= 16
+    args.plan = 1  # {1: train from scratch, 2: resume training, 3: evaluate}
+    args.context_size=512  ##rnn dim
+
+
+
+
+
+
 
     if args.dataset == 'ucf' or args.dataset == 'baby':
         args.image_size = [224,224]

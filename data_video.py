@@ -159,31 +159,29 @@ class VideoDataGenerator(object):
     #     return self.batches[self.batch_index]
 
     def next(self):
-
         # print('len videos')
         # print(len(self.videos))
 
+        sentence_labels = np.zeros((self.batch_size, 1)).astype('int32')
+        for b in range(self.positive_samples):
+            sentence_labels[b] = 1
 
-        sentence_labels = np.ones((self.batch_size, 1)).astype('int32')
-        for b in range(self.batch_size):
-            sentence_labels[b] = 1 if random.randint(1,5) == 1 else 0
         x, y, z = [], [], []
         for b in range(self.batch_size):
             random_pos = random.randint(self.terms, len(self.framesall)  - self.predict_terms)
             term_frames = self.framesall[random_pos - self.terms: random_pos]
-            true_frames = self.framesall[random_pos: random_pos + self.predict_terms]
 
             #print('random_pos: ', random_pos)
-
-            random_pos = random.randint(self.terms, len(self.framesall) - self.predict_terms)
-
-            false_frames = [ self.framesall[random.randint(0, len(self.framesall) - 1)] for i in range(self.predict_terms)]
             #print('random_pos: ' , random_pos)
 
             if sentence_labels[b] == 0:
+                #random_pos = random.randint(self.terms, len(self.framesall) - self.predict_terms)
+                false_frames = [self.framesall[random.randint(0, len(self.framesall) - 1)] for i in
+                                range(self.predict_terms)]
                 x.append(term_frames)
                 y.append(false_frames)
             else:
+                true_frames = self.framesall[random_pos: random_pos + self.predict_terms]
                 x.append(term_frames)
                 y.append(true_frames)
 
