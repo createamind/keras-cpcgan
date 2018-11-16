@@ -31,6 +31,7 @@ class VideoDataGenerator(object):
         self.sceneframes = []
         self.scenes = []
         self.roads_sences = []
+        self.info = []
         print('load date start')
         print(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
         print(dataset,subset)
@@ -76,9 +77,11 @@ class VideoDataGenerator(object):
                                             frames = []
                                 print('len sceneframes : ', len(self.sceneframes))
                                 self.scenes.append(copy.deepcopy(self.sceneframes))
+                                self.info.append(len(self.sceneframes))
                                 self.sceneframes = []
                                 print('len scenes: ', len(self.scenes))
                                 print()
+
                         self.roads_sences.append(copy.deepcopy(self.scenes))
                         self.scenes = []
                         print('len roads_sences: ', len(self.roads_sences))
@@ -191,27 +194,91 @@ class VideoDataGenerator(object):
 
         x, y, z = [], [], []
         for b in range(self.batch_size):
-            random_road= random.randint(len(self.roads_sences))
-            random_scene = random.randint(len(self.scenes))
-            random_frames = random.randint(self.terms, len(self.sceneframes)  - self.predict_terms)
+            #if epoch > 3:
+                random_road = random.randint(0,len(self.roads_sences) - 1)
+                print('random_road: ', random_road)
+                random_scene = random.randint(0,len(self.roads_sences[random_road]) - 1)
+                print('random_scene: ', random_scene)
+                random_frames = random.randint(self.terms, len(self.roads_sences[random_road][random_scene]) - self.predict_terms)
+                print("len(self.roads_sences[random_road][random_scene])", len(self.roads_sences[random_road][random_scene]))
+                print("info:", self.info)
+                print('random_frames: ', random_frames)
 
-            term_frames = self.roads_sences[random_road][random_scene][random_frames - self.terms: random_frames]
+                term_frames = self.roads_sences[random_road][random_scene][random_frames - self.terms: random_frames]
 
-            print('random_road: ', random_road)
-            print('random_scene: ', random_scene)
-            print('random_frames: ', random_frames)
-            print("len(self.roads_sences[random_road][random_scene])",len(self.roads_sences[random_road][random_scene]))
 
-            if sentence_labels[b] == 0:
-                #random_pos = random.randint(self.terms, len(self.framesall) - self.predict_terms)
-                false_frames = [self.roads_sences[random_road][random_scene][random.randint(0, len(self.roads_sences[random_road][random_scene]) - 1)] for i in
-                                range(self.predict_terms)]
-                x.append(term_frames)
-                y.append(false_frames)
-            else:
-                true_frames = self.roads_sences[random_road][random_scene][random_frames: random_frames + self.predict_terms]
-                x.append(term_frames)
-                y.append(true_frames)
+
+                if sentence_labels[b] == 0:
+                    # random_pos = random.randint(self.terms, len(self.framesall) - self.predict_terms)
+                    false_frames = [self.roads_sences[random_road][random_scene][
+                                        random.randint(0, len(self.roads_sences[random_road][random_scene]) - 1)] for i
+                                    in
+                                    range(self.predict_terms)]
+                    x.append(term_frames)
+                    y.append(false_frames)
+                else:
+                    true_frames = self.roads_sences[random_road][random_scene][
+                                  random_frames: random_frames + self.predict_terms]
+                    x.append(term_frames)
+                    y.append(true_frames)
+
+            # if epoch > 5:
+            #     random_road = random.randint(0,len(self.roads_sences) - 1)
+            #     random_scene = random.randint(0,len(self.scenes) - 1)
+            #     random_frames = random.randint(self.terms, len(self.sceneframes) - self.predict_terms)
+            #
+            #     term_frames = self.roads_sences[random_road][random_scene][random_frames - self.terms: random_frames]
+            #
+            #     print('random_road: ', random_road)
+            #     print('random_scene: ', random_scene)
+            #     print('random_frames: ', random_frames)
+            #     print("len(self.roads_sences[random_road][random_scene])",
+            #           len(self.roads_sences[random_road][random_scene]))
+            #     print("info:", self.info)
+            #
+            #     if sentence_labels[b] == 0:
+            #         # random_pos = random.randint(self.terms, len(self.framesall) - self.predict_terms)
+            #         false_frames = [self.roads_sences[random_road][random_scene][
+            #                             random.randint(0, len(self.roads_sences[random_road][random_scene]) - 1)] for i
+            #                         in
+            #                         range(self.predict_terms)]
+            #         x.append(term_frames)
+            #         y.append(false_frames)
+            #     else:
+            #         true_frames = self.roads_sences[random_road][random_scene][
+            #                       random_frames: random_frames + self.predict_terms]
+            #         x.append(term_frames)
+            #         y.append(true_frames)
+            #
+            # if epoch > 7:
+            #     random_road = random.randint(0,len(self.roads_sences) - 1)
+            #     random_scene = random.randint(0,len(self.scenes) - 1)
+            #     random_frames = random.randint(self.terms, len(self.sceneframes) - self.predict_terms)
+            #
+            #     term_frames = self.roads_sences[random_road][random_scene][random_frames - self.terms: random_frames]
+            #
+            #     print('random_road: ', random_road)
+            #     print('random_scene: ', random_scene)
+            #     print('random_frames: ', random_frames)
+            #     print("len(self.roads_sences[random_road][random_scene])",
+            #           len(self.roads_sences[random_road][random_scene]))
+            #     print("info:", self.info)
+            #
+            #     if sentence_labels[b] == 0:
+            #         # random_pos = random.randint(self.terms, len(self.framesall) - self.predict_terms)
+            #         false_frames = [self.roads_sences[random_road][random_scene][
+            #                             random.randint(0, len(self.roads_sences[random_road][random_scene]) - 1)] for i
+            #                         in
+            #                         range(self.predict_terms)]
+            #         x.append(term_frames)
+            #         y.append(false_frames)
+            #     else:
+            #         true_frames = self.roads_sences[random_road][random_scene][
+            #                       random_frames: random_frames + self.predict_terms]
+            #         x.append(term_frames)
+            #         y.append(true_frames)
+
+
 
         return [np.array(x), np.array(y)], sentence_labels
 
