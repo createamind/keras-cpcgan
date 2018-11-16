@@ -70,76 +70,7 @@ class VideoDataGenerator(object):
                         self.n_samples += len(images)
 
 
-        # for _, dirs, files in os.walk(os.path.join('./data/', dataset, subset)):
-        #     for dir_name in dirs:
-        #
-        #         if dataset == 'vkitty' or 'kth':
-        #           if subset == 'train':
-        #            if dir_name != '0001':
-        #             print(dir_name)
-        #
-        #             images = []
-        #             for _, dirs2, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
-        #                 for dir_name2 in dirs2:
-        #                     for _, _, files in os.walk(os.path.join('./data/', dataset, subset, dir_name, dir_name2)):
-        #                         images = []
-        #                         c = 0
-        #                         frames = []
-        #                         for name in sorted(files):
-        #                             # print('Reading from ' + name)
-        #                             image = scipy.ndimage.imread(
-        #                                 os.path.join('./data/', dataset, subset, dir_name,dir_name2, name))[4:116,24:136,:]
-        #                             # if dataset == 'kth':
-        #                             #     image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
-        #                             # else:
-        #                             #     image = (scipy.misc.imresize(image, [224, 224]).astype(float) - 127) / 128.0
-        #                             images.append(image[:, :, :1])
-        #                         self.videos.append(copy.deepcopy(images))
-        #                     self.videos.append(copy.deepcopy(images))
-        #
-        #           else:
-        #               print(dir_name)
-        #               images = []
-        #               for _, _, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
-        #                   images = []
-        #                   c = 0
-        #                   frames = []
-        #                   for name in sorted(files):
-        #                       # print('Reading from ' + name)
-        #                       image = scipy.ndimage.imread(os.path.join('./data/', dataset, subset, dir_name, name))[4:116,24:136,:]
-        #                       # if dataset == 'kth':
-        #                       #     image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
-        #                       # else:
-        #                       #     image = (scipy.misc.imresize(image, [224, 224]).astype(float) - 127) / 128.0
-        #                       images.append(image[:, :, :1])
-        #                   self.videos.append(copy.deepcopy(images))
-        #               self.videos.append(copy.deepcopy(images))
-        #
-        #         else:
-        #             print(dir_name)
-        #             images = []
-        #             for _, _, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
-        #                 images = []
-        #                 c = 0
-        #                 frames = []
-        #                 for name in sorted(files):
-        #                     # print('Reading from ' + name)
-        #                     image = scipy.ndimage.imread(os.path.join('./data/', dataset, subset, dir_name, name))
-        #                     if dataset == 'walking':
-        #                         image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
-        #                     else:
-        #                         image = (scipy.misc.imresize(image, [224, 224]).astype(float) - 127) / 128.0
-        #                     c = (c + 1) % frame_stack
-        #                     if self.color :
-        #                         frames.append(image)
-        #                     else:
-        #                         frames.append(image[:, :, :1])
-        #
-        #                     if c == 0:
-        #                         images.append(copy.deepcopy(frames))
-        #                         frames = []
-        #             self.videos.append(copy.deepcopy(images))
-        #     break
+
 
         print(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
         print('load date over . ')

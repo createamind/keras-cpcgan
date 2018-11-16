@@ -487,6 +487,19 @@ def network_autoregressive(x):
 
     return x
 
+def network_prediction_rnn(context, code_size, predict_terms):
+
+    ''' Define the network mapping context to multiple predictions '''
+
+    context_size = context.shape[-1].value
+
+    x = RepeatVector(predict_terms, input_shape=(context_size,))(context)
+    x = LSTM(context_size, return_sequences=True)(x)
+    output = Dense(units=code_size, activation="linear")(x)
+
+    return output
+
+
 
 def network_prediction(context, code_size, predict_terms):
 
@@ -545,7 +558,8 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
     x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2]))
     x_encoded = TimeDistributed(encoder_model)(x_input)
     context = network_autoregressive(x_encoded)
-    preds = network_prediction(context, code_size, predict_terms)
+
+    preds = network_prediction_rnn(context, code_size, predict_terms)
 
     y_input = keras.layers.Input((predict_terms, image_shape[0], image_shape[1], image_shape[2]))
     y_encoded = TimeDistributed(encoder_model)(y_input)
@@ -575,12 +589,12 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
     if dataset == 'ucf' or dataset == 'walking' or dataset == 'kth':
         # Prepare data
-        #train_data = VideoDataGenerator(batch_size=batch_size, subset='train', terms=terms,
-        #                                positive_samples=batch_size  //2, predict_terms=predict_terms,
-        #                                image_size=image_size, color=color, rescale=True, dataset=dataset)
+        train_data = VideoDataGenerator(batch_size=batch_size, subset='train', terms=terms,
+                                        positive_samples=batch_size  //2, predict_terms=predict_terms,
+                                        image_size=image_size, color=color, rescale=True, dataset=dataset)
 
         validation_data = VideoDataGenerator(batch_size=batch_size, subset='val', terms=terms,
-                                                positive_samples=batch_size  // 1, predict_terms=predict_terms,
+                                                positive_samples=batch_size  // 2, predict_terms=predict_terms,
                                                 image_size=image_size, color=color, rescale=True, dataset=dataset)
 
     elif dataset == 'generated':
@@ -809,13 +823,13 @@ if __name__ == "__main__":
     args.cpc_epochs = 1000
     args.gan_weight = 1.0
     args.cpc_weight = 5.0
-    args.predict_terms = 5
+    args.predict_terms = 1
     args.code_size = 128
-    args.batch_size = 16#64 
+    args.batch_size = 2#64
     args.color = False
     args.terms = 5
     args.load_name = "models"
-    args.plan = 3 # {1: train from scratch, 2: resume training, 3: evaluate}
+    args.plan = 1 # {1: train from scratch, 2: resume training, 3: evaluate}
 
 
 
