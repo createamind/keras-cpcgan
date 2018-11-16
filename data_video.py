@@ -5,6 +5,10 @@ import random
 import numpy as np
 import copy
 import datetime
+from matplotlib import pyplot as plt
+
+
+
 
 
 class VideoDataGenerator(object):
@@ -163,8 +167,9 @@ class VideoDataGenerator(object):
         # print(len(self.videos))
 
         sentence_labels = np.zeros((self.batch_size, 1)).astype('int32')
-        for b in range(self.positive_samples):
-            sentence_labels[b] = 1
+        for b in range(self.batch_size):
+            sentence_labels[b] = (1 if random.randint(1, 2) == 1 else 0)
+            #print("sentence_labels[b]:",sentence_labels[b])
 
         x, y, z = [], [], []
         for b in range(self.batch_size):

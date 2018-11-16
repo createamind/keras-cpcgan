@@ -498,7 +498,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
     args.name=args.name+'__'+datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
     channel = 1 * (3 if color else 1)
-    model, pc, encoder = network_cpc(image_shape=(image_size, image_size, channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
+    model, pc, encoder = network_cpc(image_shape=(frame_stack, image_size[0], image_size[1], channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
 
     if args.plan > 1:
         print('Loading CPC models')
