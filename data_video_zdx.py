@@ -27,8 +27,10 @@ class VideoDataGenerator(object):
         self.color = color
         self.rescale = rescale
 
-        self.videos = []
-        self.framesall = []
+
+        self.sceneframes = []
+        self.scenes = []
+        self.roads_sences = []
         print('load date start')
         print(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
         print(dataset,subset)
@@ -43,68 +45,84 @@ class VideoDataGenerator(object):
                 
                 #framesall = []
                 if dataset ==  'vkitty' or dataset =='kth' or dataset == 'vkittytest' : # or dataset =='ucfbig' :
-                  if subset == 'train':
-                   if dir_name != '0001' :
-                    print(dir_name)
+                    if subset == 'train':
+                        # if dir_name != '0001' :
+                        print(dir_name)
 
-                    #framesall = []
-                    for _, dirs2, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
-                        for dir_name2 in dirs2:
-                            print(dir_name2)
-                            for _, _, files in os.walk(os.path.join('./data/', dataset, subset, dir_name,dir_name2)):
-                                #framesall = []
-                                c = 0
-                                frames = []
-                                for name in sorted(files):
-                                    # print('Reading from ' + name)
-                                    image = scipy.ndimage.imread(
-                                        os.path.join('./data/', dataset, subset, dir_name,dir_name2, name))
-                                    if dataset == 'vkitty'  or dataset == 'vkittytest' :
-                                        image = (scipy.misc.imresize(image, [64,200]).astype(float) - 127) / 128.0
-                                    else:
-                                        image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
-                                    c = (c + 1) % frame_stack
-                                    if self.color:
-                                        frames.append(image)
-                                    else:
-                                        frames.append(image[:, :, :1])
-                                    if c == 0:
-                                        self.framesall.append(copy.deepcopy(frames))
-                                        frames = []
-                                    #print('1len framesframesall: ',len(images))
-                                print('2len framesframesall : ', len(self.framesall))
-                            #self.videos.append(copy.deepcopy(framesall))
-                            #print('len videos: ',  len(self.videos))
+                        # framesall = []
+                        for _, dirs2, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
+                            for dir_name2 in dirs2:
+                                print(dir_name2)
+                                for _, _, files in os.walk(
+                                        os.path.join('./data/', dataset, subset, dir_name, dir_name2)):
+                                    # framesall = []
+                                    c = 0
+                                    frames = []
+                                    for name in sorted(files):
+                                        # print('Reading from ' + name)
+                                        image = scipy.ndimage.imread(
+                                            os.path.join('./data/', dataset, subset, dir_name, dir_name2, name))
+                                        if dataset == 'vkitty' or dataset == 'vkittytest':
+                                            image = (scipy.misc.imresize(image, [64, 200]).astype(float) - 127) / 128.0
+                                        else:
+                                            image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
+                                        c = (c + 1) % frame_stack
+                                        if self.color:
+                                            frames.append(image)
+                                        else:
+                                            frames.append(image[:, :, :1])
+                                        if c == 0:
+                                            self.sceneframes.append(copy.deepcopy(frames))
+                                            frames = []
+                                print('len sceneframes : ', len(self.sceneframes))
+                                self.scenes.append(copy.deepcopy(self.sceneframes))
+                                self.sceneframes = []
+                                print('len scenes: ', len(self.scenes))
+                                print()
+                        self.roads_sences.append(copy.deepcopy(self.scenes))
+                        self.scenes = []
+                        print('len roads_sences: ', len(self.roads_sences))
+                        print()
 
-                  else:
-                      print(dir_name)
-                      #framesall = []
-                      for _, _, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
-                          #framesall = []
-                          c = 0
-                          frames = []
-                          for name in sorted(files):
-                              # print('Reading from ' + name)
-                              image = scipy.ndimage.imread(os.path.join('./data/', dataset, subset, dir_name, name))
 
-                              if dataset == 'vkitty' or dataset== 'vkittytest'  :
-                                  image = (scipy.misc.imresize(image, [64, 200]).astype(float) - 127) / 128.0
-                              else:
-                                  image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
+                    else:
+                        print(dir_name)
 
-                              c = (c + 1) % frame_stack
-                              if self.color:
-                                  frames.append(image)
-                              else:
-                                  frames.append(image[:, :, :1])
-                              if c == 0:
-                                  self.framesall.append(copy.deepcopy(frames))
-                                  frames = []
-                          #a = (a + 1 )
-                          #if a > 10:
-                          #    break
-                          print('2len framesframesall : ', len(self.framesall))
-                      #self.videos.append(copy.deepcopy(framesall))
+                        # framesall = []
+                        for _, dirs2, files in os.walk(os.path.join('./data/', dataset, subset, dir_name)):
+                            for dir_name2 in dirs2:
+                                print(dir_name2)
+                                for _, _, files in os.walk(
+                                        os.path.join('./data/', dataset, subset, dir_name, dir_name2)):
+                                    # framesall = []
+                                    c = 0
+                                    frames = []
+                                    for name in sorted(files):
+                                        # print('Reading from ' + name)
+                                        image = scipy.ndimage.imread(
+                                            os.path.join('./data/', dataset, subset, dir_name, dir_name2, name))
+                                        if dataset == 'vkitty' or dataset == 'vkittytest':
+                                            image = (scipy.misc.imresize(image, [64, 200]).astype(float) - 127) / 128.0
+                                        else:
+                                            image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
+                                        c = (c + 1) % frame_stack
+                                        if self.color:
+                                            frames.append(image)
+                                        else:
+                                            frames.append(image[:, :, :1])
+                                        if c == 0:
+                                            self.sceneframes.append(copy.deepcopy(frames))
+                                            frames = []
+                                print('len sceneframes : ', len(self.sceneframes))
+                                self.scenes.append(copy.deepcopy(self.sceneframes))
+                                self.sceneframes = []
+                                print('len scenes: ', len(self.scenes))
+                                print()
+                        self.roads_sences.append(copy.deepcopy(self.scenes))
+                        self.scenes = []
+                        print('len roads_sences: ', len(self.roads_sences))
+                        print()
+
 
                 else:
                     print(dir_name)
@@ -143,7 +161,7 @@ class VideoDataGenerator(object):
         #print('len videos')
         #print(len(self.videos))
 
-        self.n_samples = 3000 if subset == 'train' else 200
+        self.n_samples = 300 if subset == 'train' else 20
         self.n_batches = self.n_samples // batch_size
 
         # self.batches = [self.get_data() for i in range(self.n_batches)]
@@ -173,20 +191,25 @@ class VideoDataGenerator(object):
 
         x, y, z = [], [], []
         for b in range(self.batch_size):
-            random_pos = random.randint(self.terms, len(self.framesall)  - self.predict_terms)
-            term_frames = self.framesall[random_pos - self.terms: random_pos]
+            random_road= random.randint(len(self.roads_sences))
+            random_scene = random.randint(len(self.scenes))
+            random_frames = random.randint(self.terms, len(self.sceneframes)  - self.predict_terms)
 
-            #print('random_pos: ', random_pos)
-            #print('random_pos: ' , random_pos)
+            term_frames = self.roads_sences[random_road][random_scene][random_frames - self.terms: random_frames]
+
+            print('random_road: ', random_road)
+            print('random_scene: ', random_scene)
+            print('random_frames: ', random_frames)
+            print("len(self.roads_sences[random_road][random_scene])",len(self.roads_sences[random_road][random_scene]))
 
             if sentence_labels[b] == 0:
                 #random_pos = random.randint(self.terms, len(self.framesall) - self.predict_terms)
-                false_frames = [self.framesall[random.randint(0, len(self.framesall) - 1)] for i in
+                false_frames = [self.roads_sences[random_road][random_scene][random.randint(0, len(self.roads_sences[random_road][random_scene]) - 1)] for i in
                                 range(self.predict_terms)]
                 x.append(term_frames)
                 y.append(false_frames)
             else:
-                true_frames = self.framesall[random_pos: random_pos + self.predict_terms]
+                true_frames = self.roads_sences[random_road][random_scene][random_frames: random_frames + self.predict_terms]
                 x.append(term_frames)
                 y.append(true_frames)
 
