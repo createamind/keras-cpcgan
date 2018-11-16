@@ -498,7 +498,7 @@ if __name__ == "__main__":
     args.cpc_weight = 100.0
 
     args.predict_terms = 4
-    args.code_size = 64
+    args.code_size = 32
     args.batch_size = 128
     args.color = False
     args.terms = 4

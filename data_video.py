@@ -59,6 +59,12 @@ class VideoDataGenerator(object):
                             image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
 
                             images.append(image[:, :, :1])
+			
+			# concatenate two images as input	
+                        #images_np = np.array(images)
+                        #images_aligned = np.concatenate((images_np[1:, ...], images_np[:-1, ...]), axis=-1)
+                        #images = list(images_aligned)
+
 
                         self.videos.append(copy.deepcopy(images))
                         self.n_samples += len(images)
@@ -170,12 +176,32 @@ class VideoDataGenerator(object):
         x, y, z = [], [], []
         for b in range(self.batch_size):
             random_video = random.randint(0, self.n_videos - 1)     # the video number
-            random_pos = random.randint(self.terms, len(self.videos[random_video]) - self.predict_terms)   # the image position
+            #random_pos = random.randint(self.terms, len(self.videos[random_video]) - self.predict_terms)   # the image position
+            random_pos = random.randint(self.terms + 1, len(self.videos[random_video]) - self.predict_terms - 1)   # the image position
             term_images = self.videos[random_video][random_pos - self.terms: random_pos]
             true_images = self.videos[random_video][random_pos: random_pos + self.predict_terms]
-            rand_video = random.randint(0, self.n_videos - 1)
-            false_images = [self.videos[rand_video][random.randint(0, len(self.videos[rand_video]) - 1)] for i in range(self.predict_terms)]
+
+            #if b%3 == 0:
+            #    false_images = [self.videos[random_video][random.randint(0, len(self.videos[random_video]) - 1)] for i in range(self.predict_terms)]
+            #if b%2 == 1:
+            #    false_images = self.videos[random_video][random_pos + 1: random_pos + self.predict_terms + 1]
+            #elif b%2 == 0:
+            #   false_images = self.videos[random_video][random_pos - 1: random_pos + self.predict_terms - 1]
+
+            false_images = [self.videos[random_video][random.randint(0, len(self.videos[random_video]) - 1)] for i in range(self.predict_terms)]
+
             #false_images = self.videos[random_video][random_pos - self.predict_terms: random_pos]
+            
+            #if b%3 == 0:
+            #    false_images = [self.videos[random_video][random.randint(0, len(self.videos[random_video]) - 1)] for i in range(self.predict_terms)]
+            #elif b%3 == 1:
+            #    false_images = self.videos[random_video][random_pos - self.predict_terms: random_pos]
+            #else:
+            #    false_images = [self.videos[random_video][random_pos - 1] for i in range(self.predict_terms)]
+
+            #rand_video = random.randint(0, self.n_videos - 1)
+            #false_images = [self.videos[rand_video][random.randint(0, len(self.videos[rand_video]) - 1)] for i in range(self.predict_terms)]
+
 
             x.append(term_images)
             if sentence_labels[b] == 0:

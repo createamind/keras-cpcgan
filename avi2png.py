@@ -20,7 +20,7 @@ for dir_path, dir_namesx, file_names in os.walk('./'):
         file_dir = join(dir_path, file)
         print("file_dir:\n", file_dir)
 
-        os.system("ffmpeg -y -i {0} -r 12 {1}/image-%06d.png".format(file_dir, mkdir_name))
+        os.system("ffmpeg -y -i {0} -r 25 {1}/image-%06d.png".format(file_dir, mkdir_name))
 
 
 #ffmpeg -y -i output.avi -r 12 image-%06d.png

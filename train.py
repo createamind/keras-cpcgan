@@ -575,12 +575,12 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
     if dataset == 'ucf' or dataset == 'walking' or dataset == 'kth':
         # Prepare data
-        train_data = VideoDataGenerator(batch_size=batch_size, subset='train', terms=terms,
-                                        positive_samples=batch_size // 2, predict_terms=predict_terms,
-                                        image_size=image_size, color=color, rescale=True, dataset=dataset)
+        #train_data = VideoDataGenerator(batch_size=batch_size, subset='train', terms=terms,
+        #                                positive_samples=batch_size  //2, predict_terms=predict_terms,
+        #                                image_size=image_size, color=color, rescale=True, dataset=dataset)
 
         validation_data = VideoDataGenerator(batch_size=batch_size, subset='val', terms=terms,
-                                                positive_samples=batch_size // 2, predict_terms=predict_terms,
+                                                positive_samples=batch_size  // 1, predict_terms=predict_terms,
                                                 image_size=image_size, color=color, rescale=True, dataset=dataset)
 
     elif dataset == 'generated':
@@ -604,18 +604,30 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
         raise NotImplementedError
 
 
-    channel = 3 if color else 1
+    channel = 1 * (3 if color else 1)
     model, pc, encoder = network_cpc(image_shape=(image_size, image_size, channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
 
-    if len(args.load_name) > 0:
+    if args.plan > 1:
         print('Loading CPC models')
-        pc = keras.models.load_model(join(args.load_name, 'pc_' + args.name + '_156.h5'))#,custom_objects={'CPCLayer': CPCLayer})
-        encoder = keras.models.load_model(join(args.load_name, 'encoder_' + args.name + '_156.h5'))
-
+        pc = keras.models.load_model(join(args.load_name, 'pc_' + args.name + '_best.h5'))#,custom_objects={'CPCLayer': CPCLayer})
+        encoder = keras.models.load_model(join(args.load_name, 'encoder_' + args.name + '_best.h5'))
+        model = keras.models.load_model(join(args.load_name, 'cpc_' + args.name + '_best.h5'),custom_objects={'CPCLayer': CPCLayer})
+    if args.plan == 3:
+        print('Evaluating CPC models')
+        #model = keras.models.load_model(join(args.load_name, 'cpc_' + args.name + '_best.h5'),custom_objects={'CPCLayer': CPCLayer})
+        eval_results = model.evaluate_generator(
+            generator=validation_data,
+            steps=len(validation_data),
+            verbose=1
+        )
+        print("eval_results:", eval_results)
     else:
-        print('Start Training CPC')
+        if args.plan == 1:
+            print('Start Training CPC')
+        else:
+            print('Resume Training CPC')
 
-        #model = keras.models.load_model(join('cpc_models', 'cpc.h5'),custom_objects={'CPCLayer': CPCLayer})
+        #model = keras.models.load_model(join("handwaving_best_model", 'cpc_' + args.name + '_best.h5'),custom_objects={'CPCLayer': CPCLayer})
 
         # Callbacks
 
@@ -623,12 +635,12 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
             loss_min = 1000
             def on_epoch_end(self, epoch, logs={}):
                 loss_now = (logs.get('loss') + logs.get('val_loss')) / 2
-                if loss_now < SaveModel.loss_min and epoch > 3:
+                if loss_now < SaveModel.loss_min and epoch > 0:
                     SaveModel.loss_min = loss_now
                     print(SaveModel.loss_min)
-                    model.save(join(output_dir, 'cpc_' + args.name + '_%d.h5'% epoch))
-                    pc.save(join(output_dir, 'pc_' + args.name + '_%d.h5'% epoch))
-                    encoder.save(join(output_dir, 'encoder_' + args.name + '_%d.h5'% epoch))
+                    model.save(join(output_dir, 'cpc_' + args.name + '_best.h5'))#'_%d.h5'% epoch))
+                    pc.save(join(output_dir, 'pc_' + args.name + '_best.h5'))#'_%d.h5'% epoch))
+                    encoder.save(join(output_dir, 'encoder_' + args.name + '_best.h5'))#'_%d.h5'% epoch))
         save_model = SaveModel()
 
         callbacks = [keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=1/3, patience=2, min_lr=1e-4), save_model]
@@ -702,7 +714,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
         print("\nepoch: ", epoch, "\nd_loss: ", d_loss, "\ng_loss: ", g_loss)
 
-        rows = 2
+        rows = 5
         init_img = x_img[0:rows, ...]
         init_img = (init_img + 1)*0.5
         gen_img = gen_model.predict([x_img[0:rows,...],noise[0:rows,...]])
@@ -797,12 +809,15 @@ if __name__ == "__main__":
     args.cpc_epochs = 1000
     args.gan_weight = 1.0
     args.cpc_weight = 5.0
-    args.predict_terms = 4
+    args.predict_terms = 5
     args.code_size = 128
-    args.batch_size = 32
+    args.batch_size = 16#64 
     args.color = False
-    args.terms = 4
-    # args.load_name = "models"
+    args.terms = 5
+    args.load_name = "models"
+    args.plan = 3 # {1: train from scratch, 2: resume training, 3: evaluate}
+
+
 
     # args.dataset = "ucf" # 
     # args.dataset = "mnist" # 
