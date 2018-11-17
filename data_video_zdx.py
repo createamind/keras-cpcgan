@@ -5,7 +5,7 @@ import random
 import numpy as np
 import copy
 import datetime
-from matplotlib import pyplot as plt
+#from matplotlib import pyplot as plt
 
 
 
@@ -194,57 +194,60 @@ class VideoDataGenerator(object):
 
         x, y, z = [], [], []
         for b in range(self.batch_size):
-            if  0 < self.cnt  < 300:
+            if  0 < self.cnt  < 30000:
+                print("self.cnt",self.cnt)
                 random_road = random.randint(0,len(self.roads_sences) - 1)
                 random_scene = random.randint(0,len(self.roads_sences[random_road]) - 1)
                 random_frames = random.randint(self.terms, len(self.roads_sences[random_road][random_scene]) - self.predict_terms)
                 term_frames = self.roads_sences[random_road][random_scene][random_frames - self.terms: random_frames]
 
-                print('random_road: ', random_road)
-                print('random_scene: ', random_scene)
-                print('random_frames: ', random_frames)
+                # print('random_road: ', random_road)
+                # print('random_scene: ', random_scene)
+                # print('random_frames: ', random_frames)
                 if sentence_labels[b] == 0:
 
                     numbers = np.arange(0, len(self.roads_sences))
-                    random_road = np.random.choice(numbers[numbers != random_road], 1)
+                    random_road = int(np.random.choice(numbers[numbers != random_road], 1))
                     random_scene = random.randint(0, len(self.roads_sences[random_road]) - 1)
 
-                    print('random_road: ', random_road)
-                    print('random_scene: ', random_scene)
+                    # print('random_road: ', random_road)
+                    # print('random_scene: ', random_scene)
                     false_frames = []
                     lenframes = len(self.roads_sences[random_road][random_scene])
-                    for i, p in enumerate(self.predicted_terms):
+                    for i in range(self.predict_terms) :
                         selecti = random.randint(0, lenframes -1 )
-                        false_frames[i] = self.roads_sences[random_road][random_scene][selecti]
+                        #print('selecti: ', selecti)
+                        false_frames.append( self.roads_sences[random_road][random_scene][selecti] )
 
                     x.append(term_frames)
                     y.append(false_frames)
                 else:
-                    true_frames = self.roads_sences[random_road][random_scene][            random_frames: random_frames + self.predict_terms]
+                    true_frames = self.roads_sences[random_road][random_scene][ random_frames: random_frames + self.predict_terms]
                     x.append(term_frames)
                     y.append(true_frames)
 
-            if 300 < self.cnt  < 600:
+            if 29999 < self.cnt  < 60000:
+                print("self.cnt", self.cnt)
                 random_road = random.randint(0,len(self.roads_sences) - 1)
                 random_scene = random.randint(0,len(self.roads_sences[random_road]) - 1)
                 random_frames = random.randint(self.terms, len(self.roads_sences[random_road][random_scene]) - self.predict_terms)
                 term_frames = self.roads_sences[random_road][random_scene][random_frames - self.terms: random_frames]
 
-                print('random_road: ', random_road)
-                print('random_scene: ', random_scene)
-                print('random_frames: ', random_frames)
+                # print('random_road: ', random_road)
+                # print('random_scene: ', random_scene)
+                # print('random_frames: ', random_frames)
                 if sentence_labels[b] == 0:
 
                     numbers = np.arange(0, len(self.roads_sences[random_road]))
-                    random_scene = np.random.choice(numbers[numbers != random_scene], 1)
+                    random_scene2 = int(np.random.choice(numbers[numbers != random_scene], 1))
 
-                    print('random_road: ', random_road)
-                    print('random_scene: ', random_scene)
+                    # print('random_road: ', random_road)
+                    # print('random_scene: ', random_scene2)
                     false_frames = []
-                    lenframes = len(self.roads_sences[random_road][random_scene])
-                    for i, p in enumerate(self.predicted_terms):
+                    lenframes = len(self.roads_sences[random_road][random_scene2])
+                    for i in range(self.predict_terms):
                         selecti = random.randint(0, lenframes -1 )
-                        false_frames[i] = self.roads_sences[random_road][random_scene][selecti]
+                        false_frames.append(self.roads_sences[random_road][random_scene2][selecti])
 
                     x.append(term_frames)
                     y.append(false_frames)
@@ -253,24 +256,24 @@ class VideoDataGenerator(object):
                     x.append(term_frames)
                     y.append(true_frames)
 
-            if 600 < self.cnt  < 900:
+            if 59999 < self.cnt  :
                 random_road = random.randint(0,len(self.roads_sences) - 1)
                 random_scene = random.randint(0,len(self.roads_sences[random_road]) - 1)
                 random_frames = random.randint(self.terms, len(self.roads_sences[random_road][random_scene]) - self.predict_terms)
                 term_frames = self.roads_sences[random_road][random_scene][random_frames - self.terms: random_frames]
 
-                print('random_road: ', random_road)
-                print('random_scene: ', random_scene)
-
+                # print('random_road: ', random_road)
+                # print('random_scene: ', random_scene)
+                #
                 if sentence_labels[b] == 0:
-
-                    print('random_road: ', random_road)
-                    print('random_scene: ', random_scene)
+                #
+                #     print('random_road: ', random_road)
+                #     print('random_scene: ', random_scene)
                     false_frames = []
                     lenframes = len(self.roads_sences[random_road][random_scene])
-                    for i, p in enumerate(self.predicted_terms):
+                    for i in range(self.predict_terms):
                         selecti = random.randint(0, lenframes -1 )
-                        false_frames[i] = self.roads_sences[random_road][random_scene][selecti]
+                        false_frames.append(self.roads_sences[random_road][random_scene][selecti])
 
                     x.append(term_frames)
                     y.append(false_frames)
@@ -289,8 +292,8 @@ if __name__ == "__main__":
     # Test SortedNumberGenerator
     ag = VideoDataGenerator(batch_size=8, subset='train', terms=4, positive_samples=4, predict_terms=4, image_size=64, color=False, rescale=False, dataset='vkitty', frame_stack = 8)
     for (x, y), labels in ag:
-        VideoDataGenerator.next()
-        break
+        print
+
 
 
 
