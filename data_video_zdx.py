@@ -64,7 +64,7 @@ class VideoDataGenerator(object):
                                         image = scipy.ndimage.imread(
                                             os.path.join('./data/', dataset, subset, dir_name, dir_name2, name))
                                         if dataset == 'vkitty' or dataset == 'vkittytest':
-                                            image = (scipy.misc.imresize(image, [64, 200]).astype(float) - 127) / 128.0
+                                            image = (scipy.misc.imresize(image, [130, 400]).astype(float) - 127) / 128.0
                                         else:
                                             image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
                                         c = (c + 1) % frame_stack
@@ -105,7 +105,7 @@ class VideoDataGenerator(object):
                                         image = scipy.ndimage.imread(
                                             os.path.join('./data/', dataset, subset, dir_name, dir_name2, name))
                                         if dataset == 'vkitty' or dataset == 'vkittytest':
-                                            image = (scipy.misc.imresize(image, [64, 200]).astype(float) - 127) / 128.0
+                                            image = (scipy.misc.imresize(image, [130, 400]).astype(float) - 127) / 128.0
                                         else:
                                             image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
                                         c = (c + 1) % frame_stack
@@ -189,19 +189,20 @@ class VideoDataGenerator(object):
         self.cnt += 1
         sentence_labels = np.zeros((self.batch_size, 1)).astype('int32')
         for b in range(self.batch_size):
-            sentence_labels[b] = (1 if random.randint(1, 2) == 1 else 0)
+            sentence_labels[b] = (1 if self.cnt % 2 == 1 else 0)
             #print("sentence_labels[b]:",sentence_labels[b])
-
+        a = 1
         x, y, z = [], [], []
         for b in range(self.batch_size):
-            if  0 < self.cnt  < 30000:
-                print("self.cnt",self.cnt)
+            #if   self.cnt  < 30000:
+            if a == 1 :
+                #print("self.cnt",self.cnt)
                 random_road = random.randint(0,len(self.roads_sences) - 1)
                 random_scene = random.randint(0,len(self.roads_sences[random_road]) - 1)
                 random_frames = random.randint(self.terms, len(self.roads_sences[random_road][random_scene]) - self.predict_terms)
                 term_frames = self.roads_sences[random_road][random_scene][random_frames - self.terms: random_frames]
 
-                # print('random_road: ', random_road)
+                print('random_road: ', random_road)
                 # print('random_scene: ', random_scene)
                 # print('random_frames: ', random_frames)
                 if sentence_labels[b] == 0:
@@ -216,7 +217,7 @@ class VideoDataGenerator(object):
                     lenframes = len(self.roads_sences[random_road][random_scene])
                     for i in range(self.predict_terms) :
                         selecti = random.randint(0, lenframes -1 )
-                        #print('selecti: ', selecti)
+                        print('selecti: ', selecti)
                         false_frames.append( self.roads_sences[random_road][random_scene][selecti] )
 
                     x.append(term_frames)
@@ -226,8 +227,9 @@ class VideoDataGenerator(object):
                     x.append(term_frames)
                     y.append(true_frames)
 
-            if 29999 < self.cnt  < 60000:
-                print("self.cnt", self.cnt)
+            #if 29999 < self.cnt  < 60000:
+            if a == 2 :
+                #print("self.cnt", self.cnt)
                 random_road = random.randint(0,len(self.roads_sences) - 1)
                 random_scene = random.randint(0,len(self.roads_sences[random_road]) - 1)
                 random_frames = random.randint(self.terms, len(self.roads_sences[random_road][random_scene]) - self.predict_terms)
@@ -256,7 +258,8 @@ class VideoDataGenerator(object):
                     x.append(term_frames)
                     y.append(true_frames)
 
-            if 59999 < self.cnt  :
+            #if 59999 < self.cnt  :
+            if a == 3 :
                 random_road = random.randint(0,len(self.roads_sences) - 1)
                 random_scene = random.randint(0,len(self.roads_sences[random_road]) - 1)
                 random_frames = random.randint(self.terms, len(self.roads_sences[random_road][random_scene]) - self.predict_terms)

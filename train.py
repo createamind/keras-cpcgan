@@ -344,37 +344,37 @@ def network_encoder(x, code_size, image_size):
 
     ''' Define the network mapping images to embeddings '''
 
-    x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
+    x = keras.layers.Conv3D(filters=64, kernel_size=(1,4,4), strides=(1,2,2), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv3D(filters=128, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
+    x = keras.layers.Conv3D(filters=256, kernel_size=(2,4,4), strides=(1,2,2), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv3D(filters=128, kernel_size=(1,3,3), strides=(1,1,1), activation='linear')(x)
+    x = keras.layers.Conv3D(filters=512, kernel_size=(2,4,4), strides=(1,2,2), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv3D(filters=128, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
+    x = keras.layers.Conv3D(filters=128, kernel_size=(2,4,4), strides=(1,2,2), activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
 
 
-    if image_size >= 64:
+    if image_size >= 11164:
         x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.LeakyReLU()(x)
 
-    if image_size >= 112:
+    if image_size >= 11112:
         x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.LeakyReLU()(x)
 
-    if image_size >= 224:
+    if image_size >= 11224:
         x = keras.layers.Conv3D(filters=64, kernel_size=(1,3,3), strides=(1,2,2), activation='linear')(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.LeakyReLU()(x)
 
     x = keras.layers.Flatten()(x)
-    x = keras.layers.Dense(units=256, activation='linear')(x)
+    x = keras.layers.Dense(units=128, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
     x = keras.layers.Dense(units=code_size, activation='linear', name='encoder_embedding')(x)
@@ -783,7 +783,7 @@ if __name__ == "__main__":
     args.cpc_weight = 1.0
 
     args.predict_terms = 4
-    args.code_size = 512  # z dim
+    args.code_size = 700  # z dim
     #args.color = False
     args.terms = 4
     args.cpc_epochs = 50
@@ -794,9 +794,9 @@ if __name__ == "__main__":
     # args.dataset = "generated" # 
     #args.dataset = "vkitty" 
     #args.dataset = 'vkittytest'
-    args.batch_size= 1
+    args.batch_size= 16
     args.plan = 1  # {1: train from scratch, 2: resume training, 3: evaluate}
-    args.context_size=512  ##rnn dim
+    args.context_size=1024  ##rnn dim
 
 
 
@@ -809,7 +809,7 @@ if __name__ == "__main__":
     elif args.dataset == 'walking' or args.dataset == 'kth' or args.dataset =='ucfbig' :
         args.image_size = [64,64]
     elif args.dataset == 'vkitty' or args.dataset== 'vkittytest':
-        args.image_size = [64,200]
+        args.image_size = [130,400]
     else:
         args.image_size = [28,28]
 
