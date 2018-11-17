@@ -565,12 +565,12 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
             loss_min = 1000
             def on_epoch_end(self, epoch, logs={}):
                 loss_now =  logs.get('loss')  # + logs.get('val_loss')) / 2
-                if loss_now < SaveModel.loss_min and epoch > 7:
+                if loss_now < SaveModel.loss_min and epoch > 5:
                     SaveModel.loss_min = loss_now
                     print(SaveModel.loss_min)
-                    model.save(join(output_dir, 'cpc%d.h5'% epoch))
-                    pc.save(join(output_dir, 'pc%d.h5'% epoch))
-                    encoder.save(join(output_dir, 'encoder%d.h5'% epoch))
+                    model.save(join(output_dir, 'cpc-best-%d.h5'% epoch+args.name))
+                    pc.save(join(output_dir, 'pc-best-%d.h5'% epoch+args.name))
+                    encoder.save(join(output_dir, 'encoder-best-%d.h5'% epoch+args.name))
         save_model = SaveModel()
 
         callbacks = [keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=1/3, patience=2, min_lr=1e-4), save_model]
@@ -794,7 +794,7 @@ if __name__ == "__main__":
     # args.dataset = "generated" # 
     #args.dataset = "vkitty" 
     #args.dataset = 'vkittytest'
-    args.batch_size= 16
+    args.batch_size= 10
     args.plan = 1  # {1: train from scratch, 2: resume training, 3: evaluate}
     args.context_size=1024  ##rnn dim
 

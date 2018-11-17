@@ -202,7 +202,7 @@ class VideoDataGenerator(object):
                 random_frames = random.randint(self.terms, len(self.roads_sences[random_road][random_scene]) - self.predict_terms)
                 term_frames = self.roads_sences[random_road][random_scene][random_frames - self.terms: random_frames]
 
-                print('random_road: ', random_road)
+                #print('random_road: ', random_road)
                 # print('random_scene: ', random_scene)
                 # print('random_frames: ', random_frames)
                 if sentence_labels[b] == 0:
@@ -211,13 +211,13 @@ class VideoDataGenerator(object):
                     random_road = int(np.random.choice(numbers[numbers != random_road], 1))
                     random_scene = random.randint(0, len(self.roads_sences[random_road]) - 1)
 
-                    # print('random_road: ', random_road)
+                    # print('False  random_road: ', random_road)
                     # print('random_scene: ', random_scene)
                     false_frames = []
                     lenframes = len(self.roads_sences[random_road][random_scene])
                     for i in range(self.predict_terms) :
                         selecti = random.randint(0, lenframes -1 )
-                        print('selecti: ', selecti)
+                        # print('selecti: ', selecti)
                         false_frames.append( self.roads_sences[random_road][random_scene][selecti] )
 
                     x.append(term_frames)
@@ -226,6 +226,7 @@ class VideoDataGenerator(object):
                     true_frames = self.roads_sences[random_road][random_scene][ random_frames: random_frames + self.predict_terms]
                     x.append(term_frames)
                     y.append(true_frames)
+                    #print('True  random_road: ', random_road)
 
             #if 29999 < self.cnt  < 60000:
             if a == 2 :
