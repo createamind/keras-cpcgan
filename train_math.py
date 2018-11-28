@@ -18,6 +18,7 @@ from keras.optimizers import RMSprop
 from keras.utils import multi_gpu_model
 
 from data_utils1 import SortedNumberGenerator
+from data_utils_generated import GeneratedNumberGenerator
 from os.path import join, basename, dirname, exists
 
 from tqdm import tqdm
@@ -181,14 +182,14 @@ class WGANGP():
 
         model = Sequential()
 
-        model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.latent_dim * 2))
-        model.add(Reshape((7, 7, 128)))
+        model.add(Dense(64 * 7 * 7, activation="relu", input_dim=self.latent_dim * 2))
+        model.add(Reshape((7, 7, 64)))
         model.add(UpSampling2D())
-        model.add(Conv2D(128, kernel_size=4, padding="same"))
+        model.add(Conv2D(64, kernel_size=4, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
         model.add(UpSampling2D())
-        model.add(Conv2D(64, kernel_size=4, padding="same"))
+        model.add(Conv2D(32, kernel_size=4, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(Activation("relu"))
         model.add(Conv2D(self.channels, kernel_size=4, padding="same"))
@@ -208,16 +209,16 @@ class WGANGP():
         model.add(Conv2D(16, kernel_size=3, strides=2, input_shape=self.img_shape, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv2D(32, kernel_size=3, strides=2, padding="same"))
+        model.add(Conv2D(16, kernel_size=3, strides=2, padding="same"))
         model.add(ZeroPadding2D(padding=((0,1),(0,1))))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
+        model.add(Conv2D(32, kernel_size=3, strides=2, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
-        model.add(Conv2D(128, kernel_size=3, strides=1, padding="same"))
+        model.add(Conv2D(64, kernel_size=3, strides=1, padding="same"))
         model.add(BatchNormalization(momentum=0.8))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.25))
@@ -241,20 +242,20 @@ def network_encoder(x, code_size):
 
     ''' Define the network mapping images to embeddings '''
 
-    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=1, activation='linear')(x)
+    x = keras.layers.Conv2D(filters=32, kernel_size=3, strides=1, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
+    x = keras.layers.Conv2D(filters=32, kernel_size=3, strides=2, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
+    x = keras.layers.Conv2D(filters=32, kernel_size=3, strides=2, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Conv2D(filters=64, kernel_size=3, strides=2, activation='linear')(x)
+    x = keras.layers.Conv2D(filters=32, kernel_size=3, strides=2, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
     x = keras.layers.Flatten()(x)
-    x = keras.layers.Dense(units=256, activation='linear')(x)
+    x = keras.layers.Dense(units=64, activation='linear')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU()(x)
     x = keras.layers.Dense(units=code_size, activation='linear', name='encoder_embedding')(x)
@@ -262,24 +263,48 @@ def network_encoder(x, code_size):
     return x
 
 
+# def network_autoregressive(x):
+
+#     ''' Define the network that integrates information along the sequence '''
+
+#     # x = keras.layers.GRU(units=256, return_sequences=True)(x)
+#     # x = keras.layers.BatchNormalization()(x)
+#     x = keras.layers.GRU(units=256, return_sequences=False, name='ar_context')(x)
+#     return x
+
+
+# def network_prediction(context, code_size, predict_terms):
+
+#     ''' Define the network mapping context to multiple embeddings '''
+
+#     outputs = []
+#     for i in range(predict_terms):
+#         outputs.append(keras.layers.Dense(units=code_size, activation="linear", name='z_t_{i}'.format(i=i))(
+#             keras.layers.Lambda(lambda x: x[:, i])(context)))
+
+#     if len(outputs) == 1:
+#         output = keras.layers.Lambda(lambda x: K.expand_dims(x, axis=1))(outputs[0])
+#     else:
+#         output = keras.layers.Lambda(lambda x: K.stack(x, axis=1))(outputs)
+
+#     return output
+
 def network_autoregressive(x):
 
     ''' Define the network that integrates information along the sequence '''
 
-    # x = keras.layers.GRU(units=256, return_sequences=True)(x)
-    # x = keras.layers.BatchNormalization()(x)
-    x = keras.layers.GRU(units=256, return_sequences=True, name='ar_context')(x)
+    x = keras.layers.GRU(units=256, return_sequences=False, name='ar_context')(x)
+
     return x
 
 
-def network_prediction(context, code_size, predict_terms):
+def network_prediction(context, code_size, predict_terms, name='z'):
 
     ''' Define the network mapping context to multiple embeddings '''
 
     outputs = []
     for i in range(predict_terms):
-        outputs.append(keras.layers.Dense(units=code_size, activation="linear", name='z_t_{i}'.format(i=i))(
-            keras.layers.Lambda(lambda x: x[:, i])(context)))
+        outputs.append(keras.layers.Dense(units=code_size, activation="linear", name=name+'_t_{i}'.format(i=i))(context))
 
     if len(outputs) == 1:
         output = keras.layers.Lambda(lambda x: K.expand_dims(x, axis=1))(outputs[0])
@@ -287,7 +312,6 @@ def network_prediction(context, code_size, predict_terms):
         output = keras.layers.Lambda(lambda x: K.stack(x, axis=1))(outputs)
 
     return output
-
 
 class CPCLayer(keras.layers.Layer):
 
@@ -328,7 +352,6 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
     # Define rest of model
     x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2]))
     x_encoded = TimeDistributed(encoder_model)(x_input)
-    assert terms == predict_terms
     context = network_autoregressive(x_encoded)
     preds = network_prediction(context, code_size, predict_terms)
 
@@ -359,11 +382,11 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
 def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, color=False):
 
     # Prepare data
-    train_data = SortedNumberGenerator(batch_size=batch_size, subset='train', terms=terms,
+    train_data = GeneratedNumberGenerator(batch_size=batch_size, subset='train', terms=terms,
                                        positive_samples=batch_size // 2, predict_terms=predict_terms,
                                        image_size=image_size, color=color, rescale=True)
 
-    validation_data = SortedNumberGenerator(batch_size=batch_size, subset='valid', terms=terms,
+    validation_data = GeneratedNumberGenerator(batch_size=batch_size, subset='valid', terms=terms,
                                             positive_samples=batch_size // 2, predict_terms=predict_terms,
                                             image_size=image_size, color=color, rescale=True)
 
@@ -436,7 +459,8 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
             t2 = time.time()
             # print("time elapsed:", t1 - t0, t2-t1)
-
+            sys.stdout.write(
+                '\r Epoch {}: train[{} / {}]'.format(epoch, i, len(train_data)))
 
         ###################  Validation   ###################
 
@@ -495,13 +519,13 @@ if __name__ == "__main__":
     args = argparser.parse_args()
 
     args.gan_weight = 1.0
-    args.cpc_weight = 100.0
+    args.cpc_weight = 10.0
 
-    args.predict_terms = 4
-    args.code_size = 64
-    args.batch_size = 128
+    args.predict_terms = 5
+    args.code_size = 10
+    args.batch_size = 32
     args.color = False
-    args.terms = 4
+    args.terms = 8
     #args.load_name = "models"# 'cpc_models'
 
     train_model(
