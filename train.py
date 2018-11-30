@@ -477,13 +477,13 @@ def network_encoder(x, code_size, image_size):
     return x
 
 
-def network_autoregressive(x):
+def network_autoregressive(x, context_size):
 
     ''' Define the network that integrates information along the sequence '''
 
     # x = keras.layers.GRU(units=256, return_sequences=True)(x)
     # x = keras.layers.BatchNormalization()(x)
-    x = keras.layers.GRU(units=256, return_sequences=False, name='ar_context')(x)
+    x = keras.layers.GRU(units=context_size, return_sequences=False, name='ar_context')(x)
 
     return x
 
@@ -541,7 +541,7 @@ class CPCLayer(keras.layers.Layer):
         return (input_shape[0][0], 1)
 
 
-def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
+def network_cpc(image_shape, terms, predict_terms, code_size, context_size, learning_rate):
 
     ''' Define the CPC network combining encoder and autoregressive model '''
 
@@ -557,7 +557,7 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
     # Define rest of model
     x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2]))
     x_encoded = TimeDistributed(encoder_model)(x_input)
-    context = network_autoregressive(x_encoded)
+    context = network_autoregressive(x_encoded, context_size)
 
     preds = network_prediction_rnn(context, code_size, predict_terms)
 
@@ -585,7 +585,7 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
 
 
 
-def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, color=False, dataset='ucf'):
+def train_model(args, batch_size, output_dir, code_size, context_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, color=False, dataset='ucf'):
 
     if dataset == 'ucf' or dataset == 'walking' or dataset == 'kth':
         # Prepare data
@@ -619,7 +619,7 @@ def train_model(args, batch_size, output_dir, code_size, lr=1e-4, terms=4, predi
 
 
     channel = 1 * (3 if color else 1)
-    model, pc, encoder = network_cpc(image_shape=(image_size, image_size, channel), terms=terms, predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
+    model, pc, encoder = network_cpc(image_shape=(image_size, image_size, channel), terms=terms, predict_terms=predict_terms, code_size=code_size, context_size=context_size, learning_rate=lr)
 
     if args.plan > 1:
         print('Loading CPC models')
@@ -823,9 +823,10 @@ if __name__ == "__main__":
     args.cpc_epochs = 1000
     args.gan_weight = 1.0
     args.cpc_weight = 5.0
-    args.predict_terms = 1
+    args.predict_terms = 5
     args.code_size = 128
-    args.batch_size = 2#64
+    args.context_size = 512
+    args.batch_size = 64
     args.color = False
     args.terms = 5
     args.load_name = "models"
@@ -854,6 +855,7 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         output_dir='models',
         code_size=args.code_size,
+        context_size = args.context_size,
         lr=args.lr,
         terms=args.terms,
         predict_terms=args.predict_terms,

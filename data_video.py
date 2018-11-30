@@ -114,12 +114,12 @@ class VideoDataGenerator(object):
 
             #if b%3 == 0:
             #    false_images = [self.videos[random_video][random.randint(0, len(self.videos[random_video]) - 1)] for i in range(self.predict_terms)]
-            #if b%2 == 1:
-            #    false_images = self.videos[random_video][random_pos + 1: random_pos + self.predict_terms + 1]
-            #elif b%2 == 0:
-            #   false_images = self.videos[random_video][random_pos - 1: random_pos + self.predict_terms - 1]
+            if b%2 == 1:
+                false_images = self.videos[random_video][random_pos + 1: random_pos + self.predict_terms + 1]
+            elif b%2 == 0:
+                false_images = self.videos[random_video][random_pos - 1: random_pos + self.predict_terms - 1]
 
-            false_images = [self.videos[random_video][random.randint(0, len(self.videos[random_video]) - 1)] for i in range(self.predict_terms)]
+            #false_images = [self.videos[random_video][random.randint(0, len(self.videos[random_video]) - 1)] for i in range(self.predict_terms)]
 
             #false_images = self.videos[random_video][random_pos - self.predict_terms: random_pos]
             
