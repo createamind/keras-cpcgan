@@ -17,7 +17,7 @@ from keras.models import *
 from keras.layers import *
 from keras.optimizers import *
 from keras.layers.convolutional import UpSampling2D, Conv2D
-from keras.optimizers import RMSprop
+from keras.optimizers import RMSprop, Adam
 from keras.utils import multi_gpu_model
 
 from data_utils1 import SortedNumberGenerator
@@ -46,21 +46,11 @@ if not os.path.exists('models/'):
     os.makedirs('models/')
 
 
-class RandomWeightedAverage(_Merge):
-    """Provides a (random) weighted average between real and generated image samples"""
-    def __init__(self, batch_size, predict_terms):
-        super(RandomWeightedAverage, self).__init__()
-        self.batch_size = batch_size
-        self.predict_terms = predict_terms
-    def _merge_function(self, inputs):
-        alpha = K.random_uniform((self.batch_size, self.predict_terms, 1, 1, 1))
-        return (alpha * inputs[0]) + ((1 - alpha) * inputs[1])
-
 
 def time_distributed(model, inputs, per_inputs=None):
     ''' alternative for keras.layer.TimeDistributed '''
 
-    # per_inputs: other inputs
+    # per_inputs: other inputs 
     if per_inputs is None:
         outputs = [model(Lambda(lambda data: data[:,i])(inputs)) for i in range(inputs.shape[1])]
     else:
@@ -74,7 +64,7 @@ def time_distributed(model, inputs, per_inputs=None):
     return output
 
 
-class WGANGP():
+class GANQP_CPC():
     def __init__(self, args, pc, encoder, cpc_sigma):
         self.img_rows = args.image_size
         self.img_cols = args.image_size
@@ -105,7 +95,7 @@ class WGANGP():
         self.generator.trainable = False
 
         # Image input (real sample)
-        real_img = Input(shape=(self.predict_terms, self.img_rows, self.img_cols, self.channels))
+        y_img = Input(shape=(self.predict_terms, self.img_rows, self.img_cols, self.channels))
 
         # Noise input
         z_disc = Input(shape=(self.predict_terms, self.latent_dim))
@@ -121,30 +111,19 @@ class WGANGP():
         self.gen_model = Model(inputs=[x_img, z_disc], outputs=[fake_img])
 
         # Discriminator determines validity of the real and fake images
-        fake = time_distributed(self.critic,fake_img)
-        valid = time_distributed(self.critic,real_img)
+        x_fake_score = time_distributed(self.critic,fake_img)
+        x_real_score = time_distributed(self.critic,y_img)
+        self.critic_model = Model(inputs=[x_img, y_img, z_disc],
+                            outputs=[x_real_score, x_fake_score])
+        d_loss = x_real_score - x_fake_score
+        d_loss = d_loss[...,0]
+        d_norm = 10 * K.mean(K.abs(y_img - fake_img), axis=[2, 3, 4])
+        d_loss = K.mean(- d_loss + 0.5 * d_loss ** 2 / d_norm)
+
+        self.critic_model.add_loss(d_loss)
+        self.critic_model.compile(optimizer=Adam(2e-4, 0.5))
 
 
-        # Construct weighted average between real and fake images
-        interpolated_img = RandomWeightedAverage(args.batch_size, args.predict_terms)([real_img, fake_img])
-        # Determine validity of weighted sample
-        #validity_interpolated = self.critic(interpolated_img)
-        validity_interpolated = time_distributed(self.critic,interpolated_img)
-
-        # Use Python partial to provide loss function with additional
-        # 'averaged_samples' argument
-        partial_gp_loss = partial(self.gradient_penalty_loss,
-                          averaged_samples=interpolated_img)
-        partial_gp_loss.__name__ = 'gradient_penalty' # Keras requires function names
-
-        self.critic_model = Model(inputs=[x_img, real_img, z_disc],
-                            outputs=[valid, fake, validity_interpolated])
-        #self.critic_model = multi_gpu_model(self.critic_model, gpus=4)
-        self.critic_model.compile(loss=[self.wasserstein_loss,
-                                              self.wasserstein_loss,
-                                              partial_gp_loss],
-                                        optimizer=optimizer,
-                                        loss_weights=[1, 1, 10])
         self.critic_model.summary()
 
 
@@ -164,41 +143,28 @@ class WGANGP():
         z_gen_con = concatenate([z_gen, pred],-1)
 
         # Generate images based of noise
-        img = time_distributed(self.generator, z_gen_con, per_inputs=x_img_last)
+        img_gen = time_distributed(self.generator, z_gen_con, per_inputs=x_img_last)
         # Discriminator determines validity
-        valid = time_distributed(self.critic,img)
+        img_gen_score = time_distributed(self.critic,img_gen)
         # Defines generator model
 
-        z = time_distributed(encoder,img)
+        z = time_distributed(encoder,img_gen)
 
         if args.cpc_weight == 0.0:
             cpc_loss = Lambda(lambda x: x[:,:1,0])(z_gen)
         else:
             cpc_loss = cpc_sigma([pred, z])
 
-        self.generator_model = Model(inputs=[x_img, z_gen], outputs=[valid, cpc_loss])
-        self.generator_model.compile(loss=[self.wasserstein_loss, 'binary_crossentropy'], loss_weights=[args.gan_weight, args.cpc_weight], optimizer=optimizer)
 
-    def gradient_penalty_loss(self, y_true, y_pred, averaged_samples):
-        """
-        Computes gradient penalty based on prediction and weighted real / fake samples
-        """
-        gradients = K.gradients(y_pred, averaged_samples)[0]
-        # compute the euclidean norm by squaring ...
-        gradients_sqr = K.square(gradients)
-        #   ... summing over the rows ...
-        gradients_sqr_sum = K.sum(gradients_sqr,
-                                  axis=np.arange(1, len(gradients_sqr.shape)))
-        #   ... and sqrt
-        gradient_l2_norm = K.sqrt(gradients_sqr_sum)
-        # compute lambda * (1 - ||grad||)^2 still for each single sample
-        gradient_penalty = K.square(1 - gradient_l2_norm)
-        # return the mean as loss over all the batch samples
-        return K.mean(gradient_penalty)
+        self.generator_model = Model(inputs=[x_img, z_gen], outputs=[img_gen_score, cpc_loss])
 
+        cpc_loss = K.mean(cpc_loss)
+        g_loss = K.mean(-img_gen_score)
+        g_cpc_loss = g_loss * args.gan_weight + cpc_loss * args.cpc_weight
 
-    def wasserstein_loss(self, y_true, y_pred):
-        return K.mean(y_true * y_pred)
+        self.generator_model.add_loss(g_cpc_loss)
+        self.generator_model.compile(optimizer=Adam(2e-4, 0.5))
+
 
     # def build_generator(self, image_size):
 
@@ -697,13 +663,8 @@ def train_model(args, batch_size, output_dir, code_size, context_size, lr=1e-4, 
 
     print("Start Training GAN")
     cpc_sigma = CPCLayer()
-    gan = WGANGP(args, pc, encoder, cpc_sigma)
+    gan = GANQP_CPC(args, pc, encoder, cpc_sigma)
     gen_model = gan.gen_model
-
-    valid = -np.ones((batch_size, predict_terms, 1))
-    fake =  np.ones((batch_size, predict_terms, 1))
-    true_labels = np.ones((batch_size, 1))
-    dummy = np.zeros((batch_size, predict_terms, 1)) # Dummy gt for gradient penalty
 
     for epoch in range(args.gan_epochs):
         #print(len(train_data))
@@ -715,14 +676,14 @@ def train_model(args, batch_size, output_dir, code_size, context_size, lr=1e-4, 
 
             #t1 = time.time()
 
-            for _ in range(5):
+            for _ in range(2):
                 #print("yyyyyyyyyyyyyyyyyyy")
                 #[x_img, y_img], labels = next(train_data)
                 noise = np.random.normal(0, 1, (batch_size, predict_terms, args.code_size))
-                d_loss = gan.critic_model.train_on_batch([x_img, y_img, noise], [valid, fake, dummy])
+                d_loss = gan.critic_model.train_on_batch([x_img, y_img, noise], None)
 
             #t2 = time.time()
-            g_loss = gan.generator_model.train_on_batch([x_img, noise], [valid, true_labels])
+            g_loss = gan.generator_model.train_on_batch([x_img, noise], None)
 
             #t3 = time.time()
             #print("time elapsed:", t1 - t0, t2 - t1, t3 - t2)
@@ -733,7 +694,7 @@ def train_model(args, batch_size, output_dir, code_size, context_size, lr=1e-4, 
 
         print("\nepoch: ", epoch, "\nd_loss: ", d_loss, "\ng_loss: ", g_loss)
 
-        rows = 5
+        rows = min(5, args.batch_size)
         init_img = x_img[0:rows, ...]
         init_img = (init_img + 1)*0.5
         gen_img = gen_model.predict([x_img[0:rows,...],noise[0:rows,...]])
@@ -745,7 +706,7 @@ def train_model(args, batch_size, output_dir, code_size, context_size, lr=1e-4, 
             imgs = np.concatenate([imgs, imgs, imgs], axis=-1)
 
         cols = args.terms + args.predict_terms
-        fig, axs = plt.subplots(rows,cols)
+        fig, axs = plt.subplots(max(2,rows),cols)
         for i in range(rows):
             for j in range(cols):
                 axs[i,j].imshow(imgs[i,j] )
@@ -825,7 +786,7 @@ if __name__ == "__main__":
 
     args = argparser.parse_args()
 
-    args.cpc_epochs = 1000
+    args.cpc_epochs = 0#1000
     args.gan_weight = 1.0
     args.cpc_weight = 5.0
     args.predict_terms = 5

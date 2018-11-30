@@ -59,8 +59,8 @@ class VideoDataGenerator(object):
                             image = (scipy.misc.imresize(image, [112, 112]).astype(float) - 127) / 128.0
 
                             images.append(image[:, :, :1])
-			
-			# concatenate two images as input	
+
+                        # concatenate two images as input
                         #images_np = np.array(images)
                         #images_aligned = np.concatenate((images_np[1:, ...], images_np[:-1, ...]), axis=-1)
                         #images = list(images_aligned)
